@@ -1,0 +1,34 @@
+1. The Variable: How to "Induce" Aphantasia in Code
+
+First, you need a technical way to create your "A-JEPA" (Aphantasic JEPA) versus the control "V-JEPA" (Visual JEPA).
+* The Control (V-JEPA): A standard JEPA model trained on raw pixels. It tries to match embeddings that represent the full image.
+* The Variant (A-JEPA): You force the model to ignore texture/color and focus on geometry. You can do this by:
+    1. Preprocessing: Train the A-JEPA only on "Edge Maps" (Canny edge detection) or "Segmentation Masks" (solid colors for objects) rather than real photos.
+    2. Bottlenecking: Drastically reduce the dimension of the latent vector, forcing the AI to compress data. The first things to get deleted during compression are usually textures; the last things to remain are shapes/concepts.
+
+2. Experiment A: The "Texture Trap" (Robustness Test)
+
+Hypothesis: A standard AI will get confused if an object changes texture (e.g., a cat that looks like metallic chrome). The Aphantasic AI won't care because the shape is the same.
+* Dataset: Stylized-ImageNet or CLEVR. These datasets have objects with simple shapes but varying textures.
+* The Test:
+    1. Train both models to classify or predict the movement of a "Wooden Sphere."
+    2. The Trap: Show them a "Metallic Sphere" moving in the same way.
+* The Winning Metric: The Standard JEPA's error rate should spike (it's confused by the metal). The A-JEPA's error rate should stay flat (it ignores the material and tracks the physics).
+* The Data Point: "A-JEPA demonstrates 40% higher robustness to texture domain shifts."
+
+3. Experiment B: The "Long-Horizon" Physics Test
+
+Hypothesis: Generative/Visual models get "blurry" over time. If you try to imagine a ball bouncing 50 times, the picture gets messy. An Aphantasic model doing vector math stays sharp.
+* Dataset: Phyre (Physical Reasoning) or Video Prediction datasets (bouncing balls).
+* The Test: Ask the models to predict the state of the world 50 steps into the future.
+* The Winning Metric: Measure the "Drift."
+    * Standard models usually hallucinate: the ball might disappear or change size because the AI forgot what it looked like.
+    * A-JEPA should maintain the object's permanence because it is tracking a coordinate, not rendering a drawing.
+* The Data Point: "While Visual-JEPA degrades after 15 steps, A-JEPA maintains state coherence for 50+ steps."
+
+4. Experiment C: The "Compute Efficiency" (Speed Test)
+
+Hypothesis: Aphantasia is efficient. You can run it on a potato; you need a GPU cluster for the visual mind.
+* The Test: Measure the number of parameters and FLOPs (floating point operations) required to reach the same accuracy on a reasoning task.
+* The Winning Metric: Show that your A-JEPA achieves the same score on a logic test as a massive Visual Transformer, but with 10x less compute.
+* The Data Point: "A-JEPA matches SOTA performance with 90% fewer parameters, validating the efficiency of semantic-only processing."
