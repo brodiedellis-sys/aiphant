@@ -1,85 +1,137 @@
-# AIphant: V-JEPA vs A-JEPA Comparative Study
+# AIphant: Aphantasic Joint-Embedding Predictive Architecture
 
-A comparative study between **V-JEPA** (Visual JEPA with RGB inputs, high-dimensional latent) and **A-JEPA** (Abstract JEPA with Edge-only inputs, low-dimensional latent) on CIFAR-10.
+A research project exploring whether AI systems can benefit from "aphantasic" processing — learning abstract, structural representations instead of rich visual imagery.
+
+**Key Finding**: A-JEPA (Aphantasic JEPA) achieves **23x lower temporal drift** and **92% better generalization** to novel configurations compared to standard visual JEPA, while using **3.8x fewer parameters**.
+
+---
 
 ## Overview
 
-This project implements Joint-Embedding Predictive Architecture (JEPA) in two variants:
+This project implements and compares two variants of Joint-Embedding Predictive Architecture (JEPA):
 
-| Variant | Input | Channels | Embedding Dim |
-|---------|-------|----------|---------------|
-| V-JEPA  | RGB   | 3        | 512           |
-| A-JEPA  | Edge  | 1        | 128           |
+| Variant | Input | Parameters | Approach |
+|---------|-------|------------|----------|
+| **V-JEPA** | RGB images | 1.49M | Standard visual processing |
+| **A-JEPA** | Edge maps | 0.39M | Abstract/structural processing with relational reasoning |
 
-The goal is to compare:
-1. **Representation quality** via linear probe accuracy
-2. **Robustness** to texture perturbations
+Inspired by [aphantasia](https://en.wikipedia.org/wiki/Aphantasia) — the condition where people lack visual imagery but often excel at abstract reasoning — we test whether stripping away visual details and focusing on structure leads to more robust, generalizable representations.
+
+---
+
+## Key Results
+
+### Experiment 1: Temporal Coherence (Bouncing Balls)
+*Can the model maintain stable predictions over long time horizons?*
+
+| Metric | V-JEPA | A-JEPA |
+|--------|--------|--------|
+| Similarity @ Horizon 1 | 0.973 | **0.999** |
+| Similarity @ Horizon 10 | 0.959 | **0.999** |
+| Drift | 0.014 | **0.0006** |
+
+**A-JEPA shows 23x lower drift** — near-perfect state coherence over time.
+
+### Experiment 2: OOD Generalization (2→3 Balls)
+*Can the model generalize to unseen configurations?*
+
+| Metric | V-JEPA | A-JEPA |
+|--------|--------|--------|
+| In-Distribution (2 balls) | 0.55 | **0.66** |
+| Out-of-Distribution (3 balls) | 0.53 | **0.65** |
+| Generalization Gap | 0.024 | **0.002** |
+
+**A-JEPA generalizes 92% better** to novel configurations.
+
+### Experiment 3: Efficiency
+
+| Metric | V-JEPA | A-JEPA |
+|--------|--------|--------|
+| Parameters | 1.49M | **0.39M** (3.8x smaller) |
+| Throughput | 1,678/s | **4,535/s** (2.7x faster) |
+
+---
 
 ## Installation
 
 ```bash
+git clone https://github.com/brodiedellis-sys/aiphant.git
+cd aiphant
+python3 -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## Usage
+---
 
-### Train V-JEPA (RGB variant)
+## Quick Start
 
+### Train Models (CIFAR-10)
 ```bash
-python train_jepa.py --variant v_jepa --epochs 100 --batch_size 256
+python train_jepa.py --variant v_jepa --epochs 20
+python train_jepa.py --variant a_jepa --epochs 20
 ```
 
-### Train A-JEPA (Edge variant)
-
+### Run Experiments
 ```bash
-python train_jepa.py --variant a_jepa --epochs 100 --batch_size 256
+# Temporal coherence test
+python src/tasks/predict_future.py --epochs 10
+
+# OOD generalization test  
+python src/tasks/ood_generalization.py --epochs 10
+
+# CIFAR-10 robustness comparison
+python compare_results.py
 ```
 
-### Evaluate Models
+See [EXPERIMENTS.md](EXPERIMENTS.md) for detailed commands and expected outputs.
 
-```bash
-# Evaluate V-JEPA
-python linear_eval.py --variant v_jepa
-
-# Evaluate A-JEPA
-python linear_eval.py --variant a_jepa
-```
+---
 
 ## Project Structure
 
 ```
-AIphant/
+aiphant/
 ├── src/
-│   ├── __init__.py
-│   ├── dataset.py      # CIFAR-10 data loading
-│   ├── models.py       # Encoder, Predictor, LinearProbe
-│   ├── transforms.py   # CannyEdge, TexturePerturbation, RandomMask
-│   └── utils.py        # Training utilities
-├── train_jepa.py       # JEPA training script
-├── linear_eval.py      # Linear evaluation script
-├── requirements.txt    # Dependencies
-└── README.md
+│   ├── models.py          # V-JEPA/A-JEPA architectures, RelationalBlock
+│   ├── transforms.py      # Edge detection, perturbations
+│   ├── dataset.py         # CIFAR-10 loaders
+│   ├── datasets/
+│   │   └── bouncing_balls.py   # Synthetic physics dataset
+│   └── tasks/
+│       ├── predict_future.py      # Temporal prediction experiment
+│       └── ood_generalization.py  # OOD generalization experiment
+├── train_jepa.py          # JEPA training script
+├── linear_eval.py         # Linear probe evaluation
+├── compare_results.py     # Side-by-side comparison
+├── CONCEPT.md             # Theoretical motivation
+├── EXPERIMENTS.md         # Reproducible experiment guide
+└── ROADMAP.md             # Future research directions
 ```
 
-## Method
+---
 
-### JEPA Training
+## Citation
 
-1. **Target**: Encode full image → `z = encoder(x)`
-2. **Context**: Encode masked image → `z' = encoder(masked_x)`
-3. **Prediction**: Predict target from context → `p = predictor(z')`
-4. **Loss**: Negative cosine similarity between `p` and `z` (stop-gradient on `z`)
+If you use this work, please cite:
 
-### Edge Detection (A-JEPA)
+```
+@misc{aiphant2024,
+  author = {Brodie Ellis},
+  title = {AIphant: Aphantasic Joint-Embedding Predictive Architecture},
+  year = {2024},
+  url = {https://github.com/brodiedellis-sys/aiphant}
+}
+```
 
-Uses Canny edge detection to convert RGB images to single-channel edge maps, forcing the model to learn from structural/shape information only.
+---
 
-### Robustness Evaluation
+## Acknowledgments
 
-Applies strong texture perturbations (ColorJitter + Gaussian noise) to test images to evaluate robustness to texture changes.
+This work builds on Yann LeCun's [JEPA framework](https://openreview.net/forum?id=BZ5a1r-kVsf) and is inspired by research on the [texture vs. shape bias](https://arxiv.org/abs/1811.12231) in neural networks.
 
-## Expected Results
+---
 
-- **V-JEPA**: Higher clean accuracy due to richer RGB features, but potentially lower robustness
-- **A-JEPA**: Potentially lower clean accuracy but better robustness to texture perturbations (shape-focused representations)
+## License
 
+MIT License
