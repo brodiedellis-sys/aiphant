@@ -1,5 +1,7 @@
 # AIphant: Aphantasic Joint-Embedding Predictive Architecture
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17755792.svg)](https://doi.org/10.5281/zenodo.17755792)
+
 A research project exploring whether AI systems can benefit from "aphantasic" processing — learning abstract, structural representations instead of rich visual imagery.
 
 **Key Finding**: A-JEPA (Aphantasic JEPA) achieves **23x lower temporal drift** and **92% better generalization** to novel configurations compared to standard visual JEPA, while using **3.8x fewer parameters**.
