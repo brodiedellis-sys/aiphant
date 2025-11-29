@@ -1,6 +1,6 @@
 # Aphantasia-Inspired JEPA (A-JEPA): Abstract World Modeling Without Visual Reconstruction
 
-**Author:** [Your Name]  
+**Author:** Brodie D. Ellis  
 **Date:** November 29, 2025
 
 ## Abstract
