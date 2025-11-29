@@ -1,0 +1,13 @@
+CURRICULUM LEARNING RESULTS
+============================================================
+
+Schedule:
+  Easy: 30 epochs (1 ball)
+  Medium: 40 epochs (2 balls)
+  Hard: 40 epochs (2-3 balls)
+
+A-JEPA Curriculum: 55.0%
+A-JEPA Baseline: 52.0%
+V-JEPA: 53.5%
+
+Curriculum benefit: +3.0%
