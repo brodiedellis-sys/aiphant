@@ -1,0 +1,30 @@
+Using device: cpu
+
+===========================================================================
+HIDDEN MASS INFERENCE TEST
+===========================================================================
+
+Goal: Can the model infer HIDDEN mass from motion dynamics alone?
+      All balls look IDENTICAL - only physics differs.
+
+Protocol:
+  1. Self-supervised training (no labels)
+  2. Freeze encoder
+  3. Linear probe to classify: light vs heavy
+
+Settings:
+  SSL epochs: 10
+  Probe epochs: 50
+  Training videos: 500
+
+============================================================
+Running V_JEPA
+============================================================
+Total params: 1,487,488
+
+Phase 1: Self-supervised training (10 epochs)...
+         (Learning to predict future states, no mass labels)
+  Epoch 1/10 - SSL Loss: -0.5341
+  Epoch 2/10 - SSL Loss: -0.7155
+  Epoch 4/10 - SSL Loss: -0.8596
+  Epoch 6/10 - SSL Loss: -0.8072

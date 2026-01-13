@@ -1,0 +1,12 @@
+FAIR COMPARISON: V-JEPA v2 vs A-JEPA v2
+============================================================
+
+V-JEPA v2:
+  Parameters: 1,637,632
+  Train Acc: 84.2%
+  Test Acc: 84.0%
+
+A-JEPA v2:
+  Parameters: 482,336
+  Train Acc: 50.0%
+  Test Acc: 50.0%

@@ -18,14 +18,14 @@ import cv2
 class PhysicsWorld:
     """Simple 2D physics simulation."""
     
-    def __init__(self, img_size: int = 32):
+    def __init__(self, img_size: int = 32, gravity: float = 0.3, friction: float = 0.98):
         self.img_size = img_size
-        self.gravity = 0.3  # Pixels per frame^2
-        self.friction = 0.98
+        self.gravity = gravity  # Pixels per frame^2
+        self.friction = friction
         self.objects = []
         self.target = None
     
-    def add_ball(self, x, y, vx, vy, radius=3, color=255, affected_by_gravity=True):
+    def add_ball(self, x, y, vx, vy, radius=3, color=255, affected_by_gravity=True, visible=True, shape='circle', mass=1.0):
         """Add a ball to the world."""
         self.objects.append({
             'type': 'ball',
@@ -34,6 +34,9 @@ class PhysicsWorld:
             'radius': radius,
             'color': color,
             'gravity': affected_by_gravity,
+            'visible': visible,
+            'shape': shape,
+            'mass': mass,
         })
     
     def add_platform(self, x, y, width, height, color=180):
@@ -133,8 +136,17 @@ class PhysicsWorld:
         # Draw balls
         for obj in self.objects:
             if obj['type'] == 'ball':
-                cv2.circle(img, (int(obj['x']), int(obj['y'])),
-                          obj['radius'], obj['color'], -1)
+                if not obj['visible']:
+                    continue
+                    
+                if obj['shape'] == 'circle':
+                    cv2.circle(img, (int(obj['x']), int(obj['y'])),
+                              int(obj['radius']), obj['color'], -1)
+                elif obj['shape'] == 'square':
+                    r = int(obj['radius'])
+                    top_left = (int(obj['x'] - r), int(obj['y'] - r))
+                    bottom_right = (int(obj['x'] + r), int(obj['y'] + r))
+                    cv2.rectangle(img, top_left, bottom_right, obj['color'], -1)
         
         return img
 

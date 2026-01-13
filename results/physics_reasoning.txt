@@ -1,0 +1,48 @@
+Using device: cpu
+Physics Reasoning Task: goal-reaching puzzles
+
+============================================================
+Running V_JEPA
+============================================================
+Total parameters: 1,356,162
+Epoch 1/10 - Train Loss: 0.5646, Acc: 73.00% - Test Acc: 77.00%
+Epoch 2/10 - Train Loss: 0.5290, Acc: 77.80% - Test Acc: 77.00%
+Epoch 3/10 - Train Loss: 0.4855, Acc: 77.60% - Test Acc: 77.00%
+Epoch 4/10 - Train Loss: 0.4099, Acc: 80.00% - Test Acc: 65.00%
+Epoch 5/10 - Train Loss: 0.3636, Acc: 83.20% - Test Acc: 72.00%
+Epoch 6/10 - Train Loss: 0.3344, Acc: 86.00% - Test Acc: 79.00%
+Epoch 7/10 - Train Loss: 0.3061, Acc: 87.60% - Test Acc: 67.00%
+Epoch 8/10 - Train Loss: 0.2673, Acc: 89.60% - Test Acc: 72.00%
+Epoch 9/10 - Train Loss: 0.2767, Acc: 88.80% - Test Acc: 76.00%
+Epoch 10/10 - Train Loss: 0.2156, Acc: 93.20% - Test Acc: 74.00%
+
+============================================================
+Running A_JEPA
+============================================================
+Total parameters: 357,074
+Epoch 1/10 - Train Loss: 0.5605, Acc: 77.80% - Test Acc: 77.00%
+Epoch 2/10 - Train Loss: 0.5184, Acc: 77.80% - Test Acc: 77.00%
+Epoch 3/10 - Train Loss: 0.4466, Acc: 78.40% - Test Acc: 75.00%
+Epoch 4/10 - Train Loss: 0.3590, Acc: 83.60% - Test Acc: 75.00%
+Epoch 5/10 - Train Loss: 0.3089, Acc: 87.80% - Test Acc: 75.00%
+Epoch 6/10 - Train Loss: 0.2695, Acc: 90.00% - Test Acc: 71.00%
+Epoch 7/10 - Train Loss: 0.2798, Acc: 89.00% - Test Acc: 75.00%
+Epoch 8/10 - Train Loss: 0.2250, Acc: 92.60% - Test Acc: 71.00%
+Epoch 9/10 - Train Loss: 0.2121, Acc: 92.00% - Test Acc: 75.00%
+Epoch 10/10 - Train Loss: 0.1476, Acc: 95.60% - Test Acc: 74.00%
+
+
+======================================================================
+        Physics Reasoning: V-JEPA vs A-JEPA
+======================================================================
+Metric                                       V-JEPA          A-JEPA
+----------------------------------------------------------------------
+Parameters                                1,356,162         357,074
+Test Accuracy                                74.00%          74.00%
+======================================================================
+
+Key Findings:
+  - V-JEPA has 3.8x more parameters than A-JEPA
+  - A-JEPA achieves higher accuracy (+0.00 percentage points)
+  - Relational, edge-based representation transfers better to physics outcomes.
+======================================================================

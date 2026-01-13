@@ -132,6 +132,7 @@ class SlotAttention(nn.Module):
             
         Returns:
             slots: (B, num_slots, slot_dim) - factorized representation
+            attn: (B, num_slots, N) - attention weights (last iteration)
         """
         B, N, _ = inputs.shape
         
@@ -145,6 +146,7 @@ class SlotAttention(nn.Module):
         )
         
         # Iterative attention
+        attn = None
         for _ in range(self.num_iters):
             slots_prev = slots
             slots = self.norm_slots(slots)
@@ -173,7 +175,7 @@ class SlotAttention(nn.Module):
             # MLP refinement with residual
             slots = slots + self.mlp(self.norm_mlp(slots))
         
-        return slots
+        return slots, attn
 
 
 # =============================================================================
@@ -675,7 +677,7 @@ class AJEPAv2Encoder(nn.Module):
             memory_dim=memory_dim,
         )
         
-    def encode_frame(self, x: torch.Tensor) -> torch.Tensor:
+    def encode_frame(self, x: torch.Tensor, return_attn: bool = False) -> torch.Tensor:
         """
         Encode single frame using proper spatial SlotAttention.
         
@@ -693,7 +695,7 @@ class AJEPAv2Encoder(nn.Module):
         h = h.transpose(1, 2)  # (B, N, C) - spatial tokens
         
         # SlotAttention discovers objects from spatial tokens
-        slots = self.slot_attention(h)  # (B, num_slots, slot_dim)
+        slots, attn = self.slot_attention(h)  # (B, num_slots, slot_dim)
         
         # Flatten slots and apply bottleneck
         slots_flat = slots.view(B, -1)  # (B, num_slots * slot_dim)
@@ -705,6 +707,8 @@ class AJEPAv2Encoder(nn.Module):
         # L2 normalize
         z = F.normalize(z, dim=-1)
         
+        if return_attn:
+            return z, attn
         return z
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -715,6 +719,7 @@ class AJEPAv2Encoder(nn.Module):
         self, 
         video: torch.Tensor,
         return_all: bool = False,
+        return_attn: bool = False,
     ) -> torch.Tensor:
         """
         Encode video with temporal memory.
@@ -726,11 +731,21 @@ class AJEPAv2Encoder(nn.Module):
         
         # Encode each frame
         frames = video.reshape(B * T, C, H, W)
-        z_frames = self.encode_frame(frames)  # (B*T, output_dim)
+        
+        if return_attn:
+            z_frames, attn = self.encode_frame(frames, return_attn=True)
+            # attn: (B*T, K, N)
+            attn = attn.view(B, T, self.num_slots, -1)
+        else:
+            z_frames = self.encode_frame(frames)  # (B*T, output_dim)
+            
         z_frames = z_frames.view(B, T, -1)  # (B, T, output_dim)
         
         # Apply temporal memory
         z_mem, _ = self.memory(z_frames)  # (B, T, output_dim)
+        
+        if return_attn:
+            return z_mem, attn
         
         if return_all:
             return z_mem
