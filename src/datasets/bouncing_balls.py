@@ -199,12 +199,22 @@ def generate_video(
     return video
 
 
-def apply_edge_transform(video: np.ndarray) -> np.ndarray:
+def apply_edge_transform(
+    video: np.ndarray,
+    method: str = 'canny',
+) -> np.ndarray:
     """
-    Apply Canny edge detection to video frames (for A-JEPA).
+    Apply edge detection to video frames (for A-JEPA).
+    
+    Supports multiple methods for ablation studies:
+    - 'canny': Canny edge detection (default, most common)
+    - 'sobel': Sobel gradient magnitude
+    - 'laplacian': Laplacian of Gaussian
+    - 'scharr': Scharr operator (more accurate than Sobel)
     
     Args:
         video: (T, 1, H, W) float32 array in [0, 1]
+        method: Edge detection method
     
     Returns:
         Edge video of same shape
@@ -214,12 +224,83 @@ def apply_edge_transform(video: np.ndarray) -> np.ndarray:
     
     for t in range(T):
         frame = (video[t, 0] * 255).astype(np.uint8)
-        edges = cv2.Canny(frame, 50, 150)
-        edges = edges.astype(np.float32) / 255.0
+        
+        if method == 'canny':
+            edges = cv2.Canny(frame, 50, 150)
+            edges = edges.astype(np.float32) / 255.0
+            
+        elif method == 'sobel':
+            # Sobel gradient magnitude
+            sobel_x = cv2.Sobel(frame, cv2.CV_64F, 1, 0, ksize=3)
+            sobel_y = cv2.Sobel(frame, cv2.CV_64F, 0, 1, ksize=3)
+            edges = np.sqrt(sobel_x**2 + sobel_y**2)
+            edges = np.clip(edges / edges.max() if edges.max() > 0 else edges, 0, 1)
+            edges = edges.astype(np.float32)
+            
+        elif method == 'laplacian':
+            # Laplacian of Gaussian
+            blurred = cv2.GaussianBlur(frame, (3, 3), 0)
+            laplacian = cv2.Laplacian(blurred, cv2.CV_64F)
+            edges = np.abs(laplacian)
+            edges = np.clip(edges / edges.max() if edges.max() > 0 else edges, 0, 1)
+            edges = edges.astype(np.float32)
+            
+        elif method == 'scharr':
+            # Scharr operator (more accurate gradients)
+            scharr_x = cv2.Scharr(frame, cv2.CV_64F, 1, 0)
+            scharr_y = cv2.Scharr(frame, cv2.CV_64F, 0, 1)
+            edges = np.sqrt(scharr_x**2 + scharr_y**2)
+            edges = np.clip(edges / edges.max() if edges.max() > 0 else edges, 0, 1)
+            edges = edges.astype(np.float32)
+            
+        else:
+            raise ValueError(f"Unknown edge method: {method}. Use 'canny', 'sobel', 'laplacian', or 'scharr'.")
+        
         edge_frames.append(edges)
     
     edge_video = np.stack(edge_frames, axis=0)[:, np.newaxis, :, :]
     return edge_video
+
+
+def apply_edges_plus_lowfreq(
+    video: np.ndarray,
+    blur_sigma: float = 8.0,
+    edge_method: str = 'canny',
+) -> np.ndarray:
+    """
+    Create 2-channel representation: edges + blurred grayscale.
+    
+    This tests whether A-JEPA benefits from minimal color/layout info
+    while still suppressing texture details.
+    
+    Args:
+        video: (T, 1, H, W) float32 array in [0, 1]
+        blur_sigma: Gaussian blur sigma for low-frequency component
+        edge_method: Edge detection method ('canny', 'sobel', etc.)
+    
+    Returns:
+        (T, 2, H, W) float32 array: [edges, lowfreq]
+    """
+    T, C, H, W = video.shape
+    
+    # Get edges
+    edges = apply_edge_transform(video, method=edge_method)  # (T, 1, H, W)
+    
+    # Get low-frequency (blurred) component
+    lowfreq_frames = []
+    for t in range(T):
+        frame = (video[t, 0] * 255).astype(np.uint8)
+        # Apply strong Gaussian blur
+        blurred = cv2.GaussianBlur(frame, (0, 0), blur_sigma)
+        lowfreq = blurred.astype(np.float32) / 255.0
+        lowfreq_frames.append(lowfreq)
+    
+    lowfreq_video = np.stack(lowfreq_frames, axis=0)[:, np.newaxis, :, :]  # (T, 1, H, W)
+    
+    # Concatenate: (T, 2, H, W)
+    combined = np.concatenate([edges, lowfreq_video], axis=1)
+    
+    return combined
 
 
 class BouncingBallsDataset(Dataset):
@@ -230,6 +311,8 @@ class BouncingBallsDataset(Dataset):
         - context_frames: First N frames (for encoding context)
         - target_frame: A future frame (for prediction target)
         - horizon: How many steps ahead the target is
+    
+    Supports multiple edge detection methods for ablation studies.
     """
     
     def __init__(
@@ -240,8 +323,8 @@ class BouncingBallsDataset(Dataset):
         max_horizon: int = 10,
         num_balls: int = 2,
         img_size: int = 32,
-        mode: str = 'raw',  # 'raw' for V-JEPA, 'edge' for A-JEPA
-        with_collisions: bool = True,  # Enable ball-ball collisions
+        mode: str = 'raw',  # 'raw', 'edge', 'edge_sobel', 'edge_laplacian', 'edge_lowfreq'
+        with_collisions: bool = True,
         seed: int = None,
     ):
         """
@@ -252,7 +335,13 @@ class BouncingBallsDataset(Dataset):
             max_horizon: Maximum prediction horizon (target at context_length + horizon)
             num_balls: Number of balls per video (1-3)
             img_size: Frame size
-            mode: 'raw' for grayscale, 'edge' for edge-detected (A-JEPA)
+            mode: Input representation:
+                - 'raw': Grayscale (V-JEPA)
+                - 'edge': Canny edges (A-JEPA default)
+                - 'edge_sobel': Sobel edges
+                - 'edge_laplacian': Laplacian edges
+                - 'edge_scharr': Scharr edges
+                - 'edge_lowfreq': Edges + low-freq grayscale (2 channels)
             with_collisions: Whether balls collide with each other
             seed: Random seed for reproducibility
         """
@@ -272,8 +361,23 @@ class BouncingBallsDataset(Dataset):
         self.videos = []
         for _ in range(num_samples):
             video = generate_video(num_frames, num_balls, img_size, with_collisions)
-            if mode == 'edge':
-                video = apply_edge_transform(video)
+            
+            # Apply transform based on mode
+            if mode == 'raw':
+                pass  # Keep as is
+            elif mode == 'edge':
+                video = apply_edge_transform(video, method='canny')
+            elif mode == 'edge_sobel':
+                video = apply_edge_transform(video, method='sobel')
+            elif mode == 'edge_laplacian':
+                video = apply_edge_transform(video, method='laplacian')
+            elif mode == 'edge_scharr':
+                video = apply_edge_transform(video, method='scharr')
+            elif mode == 'edge_lowfreq':
+                video = apply_edges_plus_lowfreq(video, blur_sigma=8.0, edge_method='canny')
+            else:
+                raise ValueError(f"Unknown mode: {mode}")
+            
             self.videos.append(video)
     
     def __len__(self):
@@ -440,5 +544,18 @@ if __name__ == '__main__':
     sample_edge = dataset_edge[0]
     print(f"Edge context shape: {sample_edge['context'].shape}")
     
-    print("\nAll tests passed!")
+    # Test all edge methods for ablation
+    print("\n" + "=" * 50)
+    print("EDGE METHOD ABLATIONS")
+    print("=" * 50)
+    
+    edge_methods = ['edge', 'edge_sobel', 'edge_laplacian', 'edge_scharr', 'edge_lowfreq']
+    for method in edge_methods:
+        dataset = BouncingBallsDataset(num_samples=5, mode=method, with_collisions=True, seed=42)
+        sample = dataset[0]
+        print(f"\n{method}:")
+        print(f"  Context shape: {sample['context'].shape}")
+        print(f"  Value range: [{sample['context'].min():.3f}, {sample['context'].max():.3f}]")
+    
+    print("\n✅ All tests passed!")
 

@@ -878,6 +878,8 @@ class VJEPAv2Encoder(nn.Module):
     - Higher dimensionality
     
     This ensures fair comparison - both have temporal memory + multi-step prediction.
+    
+    UPDATED: Now supports configurable conv channels for capacity-matched experiments.
     """
     
     def __init__(
@@ -886,30 +888,33 @@ class VJEPAv2Encoder(nn.Module):
         img_size: int = 32,
         emb_dim: int = 128,
         memory_dim: int = 128,
+        conv_channels: tuple = (64, 128, 256, 256),  # NEW: configurable
     ):
         super().__init__()
         self.emb_dim = emb_dim
         self.total_dim = emb_dim
         
-        # Standard conv encoder (RGB)
+        c1, c2, c3, c4 = conv_channels
+        
+        # Standard conv encoder (RGB) - now with configurable channels
         self.conv = nn.Sequential(
-            nn.Conv2d(in_channels, 64, 3, stride=2, padding=1),
-            nn.BatchNorm2d(64),
+            nn.Conv2d(in_channels, c1, 3, stride=2, padding=1),
+            nn.BatchNorm2d(c1),
             nn.ReLU(inplace=True),
-            nn.Conv2d(64, 128, 3, stride=2, padding=1),
-            nn.BatchNorm2d(128),
+            nn.Conv2d(c1, c2, 3, stride=2, padding=1),
+            nn.BatchNorm2d(c2),
             nn.ReLU(inplace=True),
-            nn.Conv2d(128, 256, 3, stride=2, padding=1),
-            nn.BatchNorm2d(256),
+            nn.Conv2d(c2, c3, 3, stride=2, padding=1),
+            nn.BatchNorm2d(c3),
             nn.ReLU(inplace=True),
-            nn.Conv2d(256, 256, 3, stride=2, padding=1),
-            nn.BatchNorm2d(256),
+            nn.Conv2d(c3, c4, 3, stride=2, padding=1),
+            nn.BatchNorm2d(c4),
             nn.ReLU(inplace=True),
         )
         
         # Spatial size after conv (32 -> 2)
         conv_spatial = img_size // 16
-        conv_dim = 256 * conv_spatial * conv_spatial
+        conv_dim = c4 * conv_spatial * conv_spatial
         
         # Project to embedding
         self.fc = nn.Linear(conv_dim, emb_dim)
@@ -962,6 +967,8 @@ class VJEPAv2(nn.Module):
     - Multi-step prediction ✓
     - RGB input (no edge preprocessing)
     - No slot attention, no sparsity
+    
+    UPDATED: Now supports configurable conv channels for capacity-matched experiments.
     """
     
     def __init__(
@@ -972,6 +979,7 @@ class VJEPAv2(nn.Module):
         memory_dim: int = 128,
         num_pred_steps: int = 5,
         use_uncertainty: bool = True,
+        conv_channels: tuple = (64, 128, 256, 256),  # NEW: configurable
     ):
         super().__init__()
         
@@ -983,6 +991,7 @@ class VJEPAv2(nn.Module):
             img_size=img_size,
             emb_dim=emb_dim,
             memory_dim=memory_dim,
+            conv_channels=conv_channels,
         )
         
         # Multi-step predictor (same as A-JEPA v2)
@@ -1046,7 +1055,16 @@ def get_vjepa_v2(
     img_size: int = 32,
     config: str = 'default'
 ) -> VJEPAv2:
-    """Create V-JEPA v2 with matched architecture to A-JEPA v2."""
+    """
+    Create V-JEPA v2 with preset configurations.
+    
+    UPDATED: Added 'capacity_matched' config (~180K params) for fair comparison.
+    
+    Configs:
+    - 'default': Original V-JEPA (~1.6M params)
+    - 'small': Smaller variant (~400K params)
+    - 'capacity_matched': Matches A-JEPA param count (~180K params)
+    """
     
     configs = {
         'default': {
@@ -1054,12 +1072,22 @@ def get_vjepa_v2(
             'memory_dim': 128,
             'num_pred_steps': 5,
             'use_uncertainty': True,
+            'conv_channels': (64, 128, 256, 256),  # Original: ~1.6M params
         },
         'small': {
             'emb_dim': 64,
             'memory_dim': 64,
             'num_pred_steps': 3,
             'use_uncertainty': False,
+            'conv_channels': (32, 64, 128, 128),  # Smaller: ~400K params
+        },
+        # NEW: Capacity-matched to A-JEPA (~180K params)
+        'capacity_matched': {
+            'emb_dim': 48,
+            'memory_dim': 48,
+            'num_pred_steps': 5,
+            'use_uncertainty': True,
+            'conv_channels': (28, 56, 72, 72),  # Tuned to ~180K params
         },
     }
     
@@ -1085,12 +1113,14 @@ def get_ajepa_v2(
     Create A-JEPA v2 model with preset configurations.
     
     UPDATED: Uses simplified architecture with proper spatial SlotAttention.
+    Added 'capacity_matched' config (~1.6M params) for fair comparison with V-JEPA.
     
     Configs:
-    - 'default': balanced config (~300K params)
+    - 'default': balanced config (~180K params)
     - 'tiny': minimal for testing
     - 'medium': slightly larger for better capacity
-    - 'large': scaled up for fair comparison with V-JEPA
+    - 'large': scaled up (~500K params)
+    - 'capacity_matched': matches V-JEPA param count (~1.6M params)
     """
     
     configs = {
@@ -1128,7 +1158,17 @@ def get_ajepa_v2(
             'output_dim': 96,
             'num_pred_steps': 5,
             'use_uncertainty': True,
-            'sparsity_lambda': 0.001,  # Even softer for larger model
+            'sparsity_lambda': 0.001,
+        },
+        # NEW: Capacity-matched to V-JEPA (~1.6M params)
+        'capacity_matched': {
+            'num_slots': 8,
+            'slot_dim': 112,
+            'bottleneck_dim': 112,
+            'output_dim': 128,
+            'num_pred_steps': 5,
+            'use_uncertainty': True,
+            'sparsity_lambda': 0.0005,  # Very soft for large model
         },
     }
     
@@ -1160,8 +1200,8 @@ if __name__ == '__main__':
     print("\n2. SlotAttention:")
     slot_attn = SlotAttention(num_slots=4, slot_dim=32, input_dim=64)
     inputs = torch.randn(B, 16, 64)  # 16 spatial positions
-    slots = slot_attn(inputs)
-    print(f"   Input: {inputs.shape} -> Slots: {slots.shape}")
+    slots, attn = slot_attn(inputs)
+    print(f"   Input: {inputs.shape} -> Slots: {slots.shape}, Attn: {attn.shape}")
     
     print("\n3. SparseBottleneck:")
     bottleneck = SparseBottleneck(input_dim=128, bottleneck_dim=32)
@@ -1200,6 +1240,47 @@ if __name__ == '__main__':
     output = model(context, target)
     print(f"   Context: {context.shape}, Target: {target.shape}")
     print(f"   Loss: {output['loss']:.4f} (pred: {output['pred_loss']:.4f}, aux: {output['aux_loss']:.4f})")
+    
+    # ==========================================================================
+    # NEW: Test capacity-matched configs for rigorous experiments
+    # ==========================================================================
+    print("\n" + "=" * 70)
+    print("CAPACITY-MATCHED MODEL VARIANTS")
+    print("=" * 70)
+    
+    print("\n8. Model Parameter Counts:")
+    
+    # A-JEPA configs
+    for cfg in ['default', 'capacity_matched']:
+        model = get_ajepa_v2(in_channels=1, img_size=32, config=cfg)
+        params = sum(p.numel() for p in model.parameters())
+        print(f"   A-JEPA v2 ({cfg}): {params:,} params")
+    
+    # V-JEPA configs
+    for cfg in ['default', 'capacity_matched']:
+        model = get_vjepa_v2(in_channels=1, img_size=32, config=cfg)
+        params = sum(p.numel() for p in model.parameters())
+        print(f"   V-JEPA v2 ({cfg}): {params:,} params")
+    
+    # Verify capacity matching
+    a_default = get_ajepa_v2(in_channels=1, img_size=32, config='default')
+    v_matched = get_vjepa_v2(in_channels=1, img_size=32, config='capacity_matched')
+    a_params = sum(p.numel() for p in a_default.parameters())
+    v_params = sum(p.numel() for p in v_matched.parameters())
+    
+    print(f"\n   Capacity Match Check:")
+    print(f"   A-JEPA (default): {a_params:,}")
+    print(f"   V-JEPA (capacity_matched): {v_params:,}")
+    print(f"   Ratio: {v_params / a_params:.2f}x")
+    
+    a_matched = get_ajepa_v2(in_channels=1, img_size=32, config='capacity_matched')
+    v_default = get_vjepa_v2(in_channels=1, img_size=32, config='default')
+    a_params = sum(p.numel() for p in a_matched.parameters())
+    v_params = sum(p.numel() for p in v_default.parameters())
+    
+    print(f"\n   A-JEPA (capacity_matched): {a_params:,}")
+    print(f"   V-JEPA (default): {v_params:,}")
+    print(f"   Ratio: {v_params / a_params:.2f}x")
     
     print("\n✅ All A-JEPA v2 components working!")
 
