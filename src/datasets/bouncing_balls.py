@@ -262,6 +262,136 @@ def apply_edge_transform(
     return edge_video
 
 
+# =============================================================================
+# V3 PREPROCESSING FUNCTIONS
+# =============================================================================
+
+def multi_scale_sobel(video: np.ndarray) -> np.ndarray:
+    """
+    Compute multi-scale Sobel edges for A-JEPA v3.
+    
+    Instead of fixed Canny thresholds, uses Sobel at 3 scales to capture
+    edges at different granularities. This is threshold-free and lets the
+    network learn what matters.
+    
+    Args:
+        video: (T, 1, H, W) grayscale video in [0, 1]
+        
+    Returns:
+        (T, 3, H, W) multi-scale edge representation:
+            - Channel 0: Fine edges (ksize=3)
+            - Channel 1: Medium edges (ksize=5)
+            - Channel 2: Coarse edges (ksize=7)
+    """
+    T, C, H, W = video.shape
+    multi_scale_frames = []
+    
+    for t in range(T):
+        frame = (video[t, 0] * 255).astype(np.uint8)
+        
+        edges = []
+        for ksize in [3, 5, 7]:
+            sobel_x = cv2.Sobel(frame, cv2.CV_64F, 1, 0, ksize=ksize)
+            sobel_y = cv2.Sobel(frame, cv2.CV_64F, 0, 1, ksize=ksize)
+            magnitude = np.sqrt(sobel_x**2 + sobel_y**2)
+            # Normalize to [0, 1]
+            magnitude = magnitude / (magnitude.max() + 1e-6)
+            edges.append(magnitude.astype(np.float32))
+        
+        # Stack as 3 channels
+        multi_scale_frames.append(np.stack(edges, axis=0))  # (3, H, W)
+    
+    return np.stack(multi_scale_frames, axis=0)  # (T, 3, H, W)
+
+
+def compute_motion_features(video: np.ndarray) -> np.ndarray:
+    """
+    Compute motion features as frame-to-frame differences.
+    
+    Aphantasia Insight: Direct motion perception without visual replay.
+    Instead of making the network infer motion, we provide it explicitly.
+    
+    Args:
+        video: (T, C, H, W) any video
+        
+    Returns:
+        (T, 1, H, W) motion magnitude (first frame is zero)
+    """
+    T, C, H, W = video.shape
+    
+    # Sum across channels if multi-channel
+    if C > 1:
+        video_gray = video.mean(axis=1, keepdims=True)  # (T, 1, H, W)
+    else:
+        video_gray = video
+    
+    # Motion = absolute difference between consecutive frames
+    motion = np.zeros((T, 1, H, W), dtype=np.float32)
+    motion[1:] = np.abs(video_gray[1:] - video_gray[:-1])
+    
+    # Normalize to [0, 1]
+    max_val = motion.max()
+    if max_val > 0:
+        motion = motion / max_val
+    
+    return motion
+
+
+def preprocess_for_ajepa_v3(video: np.ndarray) -> np.ndarray:
+    """
+    Create 4-channel input for A-JEPA v3.
+    
+    Channels:
+    - 0-2: Multi-scale Sobel edges (fine, medium, coarse)
+    - 3: Motion magnitude
+    
+    Args:
+        video: (T, 1, H, W) grayscale video in [0, 1]
+        
+    Returns:
+        (T, 4, H, W) A-JEPA v3 input
+    """
+    # Multi-scale edges
+    edges = multi_scale_sobel(video)  # (T, 3, H, W)
+    
+    # Motion features
+    motion = compute_motion_features(video)  # (T, 1, H, W)
+    
+    # Concatenate
+    return np.concatenate([edges, motion], axis=1)  # (T, 4, H, W)
+
+
+def preprocess_for_vjepa_v3(video_rgb: np.ndarray) -> np.ndarray:
+    """
+    Create 4-channel input for V-JEPA v3.
+    
+    Channels:
+    - 0-2: RGB (or grayscale expanded to 3 channels)
+    - 3: Motion magnitude
+    
+    Args:
+        video_rgb: (T, 3, H, W) RGB video or (T, 1, H, W) grayscale
+        
+    Returns:
+        (T, 4, H, W) V-JEPA v3 input
+    """
+    T, C, H, W = video_rgb.shape
+    
+    # Expand grayscale to RGB if needed
+    if C == 1:
+        video_rgb = np.tile(video_rgb, (1, 3, 1, 1))  # (T, 3, H, W)
+    
+    # Motion features (computed from grayscale)
+    motion = compute_motion_features(video_rgb)  # (T, 1, H, W)
+    
+    # Concatenate
+    return np.concatenate([video_rgb, motion], axis=1)  # (T, 4, H, W)
+
+
+# =============================================================================
+# ORIGINAL EDGE FUNCTIONS
+# =============================================================================
+
 def apply_edges_plus_lowfreq(
     video: np.ndarray,
     blur_sigma: float = 8.0,
@@ -342,6 +472,8 @@ class BouncingBallsDataset(Dataset):
                 - 'edge_laplacian': Laplacian edges
                 - 'edge_scharr': Scharr edges
                 - 'edge_lowfreq': Edges + low-freq grayscale (2 channels)
+                - 'ajepa_v3': Multi-scale Sobel + motion (4 channels)
+                - 'vjepa_v3': RGB + motion (4 channels)
             with_collisions: Whether balls collide with each other
             seed: Random seed for reproducibility
         """
@@ -375,6 +507,10 @@ class BouncingBallsDataset(Dataset):
                 video = apply_edge_transform(video, method='scharr')
             elif mode == 'edge_lowfreq':
                 video = apply_edges_plus_lowfreq(video, blur_sigma=8.0, edge_method='canny')
+            elif mode == 'ajepa_v3':
+                video = preprocess_for_ajepa_v3(video)  # Multi-scale edges + motion (4ch)
+            elif mode == 'vjepa_v3':
+                video = preprocess_for_vjepa_v3(video)  # RGB + motion (4ch)
             else:
                 raise ValueError(f"Unknown mode: {mode}")
             
@@ -554,6 +690,52 @@ if __name__ == '__main__':
         dataset = BouncingBallsDataset(num_samples=5, mode=method, with_collisions=True, seed=42)
         sample = dataset[0]
         print(f"\n{method}:")
+        print(f"  Context shape: {sample['context'].shape}")
+        print(f"  Value range: [{sample['context'].min():.3f}, {sample['context'].max():.3f}]")
+    
+    # Test V3 preprocessing functions
+    print("\n" + "=" * 50)
+    print("V3 PREPROCESSING TESTS")
+    print("=" * 50)
+    
+    # Test multi_scale_sobel
+    test_video = generate_video(num_frames=10, num_balls=2)
+    edges = multi_scale_sobel(test_video)
+    print(f"\nmulti_scale_sobel:")
+    print(f"  Input: {test_video.shape}")
+    print(f"  Output: {edges.shape}")
+    print(f"  Value range: [{edges.min():.3f}, {edges.max():.3f}]")
+    
+    # Test compute_motion_features
+    motion = compute_motion_features(test_video)
+    print(f"\ncompute_motion_features:")
+    print(f"  Input: {test_video.shape}")
+    print(f"  Output: {motion.shape}")
+    print(f"  Value range: [{motion.min():.3f}, {motion.max():.3f}]")
+    
+    # Test A-JEPA v3 preprocessing
+    ajepa_input = preprocess_for_ajepa_v3(test_video)
+    print(f"\npreprocess_for_ajepa_v3:")
+    print(f"  Input: {test_video.shape}")
+    print(f"  Output: {ajepa_input.shape}")
+    print(f"  (Expected: T, 4, H, W)")
+    
+    # Test V-JEPA v3 preprocessing
+    vjepa_input = preprocess_for_vjepa_v3(test_video)
+    print(f"\npreprocess_for_vjepa_v3:")
+    print(f"  Input: {test_video.shape}")
+    print(f"  Output: {vjepa_input.shape}")
+    print(f"  (Expected: T, 4, H, W)")
+    
+    # Test v3 modes in dataset
+    print("\n" + "=" * 50)
+    print("V3 DATASET MODES")
+    print("=" * 50)
+    
+    for mode in ['ajepa_v3', 'vjepa_v3']:
+        dataset = BouncingBallsDataset(num_samples=5, mode=mode, with_collisions=True, seed=42)
+        sample = dataset[0]
+        print(f"\n{mode}:")
         print(f"  Context shape: {sample['context'].shape}")
         print(f"  Value range: [{sample['context'].min():.3f}, {sample['context'].max():.3f}]")
     

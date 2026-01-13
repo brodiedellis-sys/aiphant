@@ -1,0 +1,328 @@
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/linear_model/_linear_loss.py:200: RuntimeWarning: divide by zero encountered in matmul
+  raw_prediction = X @ weights + intercept
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/linear_model/_linear_loss.py:200: RuntimeWarning: overflow encountered in matmul
+  raw_prediction = X @ weights + intercept
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/linear_model/_linear_loss.py:200: RuntimeWarning: invalid value encountered in matmul
+  raw_prediction = X @ weights + intercept
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/linear_model/_linear_loss.py:330: RuntimeWarning: divide by zero encountered in matmul
+  grad[:n_features] = X.T @ grad_pointwise + l2_reg_strength * weights
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/linear_model/_linear_loss.py:330: RuntimeWarning: overflow encountered in matmul
+  grad[:n_features] = X.T @ grad_pointwise + l2_reg_strength * weights
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/linear_model/_linear_loss.py:330: RuntimeWarning: invalid value encountered in matmul
+  grad[:n_features] = X.T @ grad_pointwise + l2_reg_strength * weights
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:203: RuntimeWarning: divide by zero encountered in matmul
+  ret = a @ b
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:203: RuntimeWarning: overflow encountered in matmul
+  ret = a @ b
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:203: RuntimeWarning: invalid value encountered in matmul
+  ret = a @ b
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:203: RuntimeWarning: divide by zero encountered in matmul
+  ret = a @ b
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:203: RuntimeWarning: overflow encountered in matmul
+  ret = a @ b
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:203: RuntimeWarning: invalid value encountered in matmul
+  ret = a @ b
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/linear_model/_linear_loss.py:200: RuntimeWarning: divide by zero encountered in matmul
+  raw_prediction = X @ weights + intercept
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/linear_model/_linear_loss.py:200: RuntimeWarning: overflow encountered in matmul
+  raw_prediction = X @ weights + intercept
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/linear_model/_linear_loss.py:200: RuntimeWarning: invalid value encountered in matmul
+  raw_prediction = X @ weights + intercept
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/linear_model/_linear_loss.py:330: RuntimeWarning: divide by zero encountered in matmul
+  grad[:n_features] = X.T @ grad_pointwise + l2_reg_strength * weights
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/linear_model/_linear_loss.py:330: RuntimeWarning: overflow encountered in matmul
+  grad[:n_features] = X.T @ grad_pointwise + l2_reg_strength * weights
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/linear_model/_linear_loss.py:330: RuntimeWarning: invalid value encountered in matmul
+  grad[:n_features] = X.T @ grad_pointwise + l2_reg_strength * weights
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:203: RuntimeWarning: divide by zero encountered in matmul
+  ret = a @ b
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:203: RuntimeWarning: overflow encountered in matmul
+  ret = a @ b
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:203: RuntimeWarning: invalid value encountered in matmul
+  ret = a @ b
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:203: RuntimeWarning: divide by zero encountered in matmul
+  ret = a @ b
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:203: RuntimeWarning: overflow encountered in matmul
+  ret = a @ b
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:203: RuntimeWarning: invalid value encountered in matmul
+  ret = a @ b
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/linear_model/_linear_loss.py:200: RuntimeWarning: divide by zero encountered in matmul
+  raw_prediction = X @ weights + intercept
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/linear_model/_linear_loss.py:200: RuntimeWarning: overflow encountered in matmul
+  raw_prediction = X @ weights + intercept
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/linear_model/_linear_loss.py:200: RuntimeWarning: invalid value encountered in matmul
+  raw_prediction = X @ weights + intercept
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/linear_model/_linear_loss.py:330: RuntimeWarning: divide by zero encountered in matmul
+  grad[:n_features] = X.T @ grad_pointwise + l2_reg_strength * weights
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/linear_model/_linear_loss.py:330: RuntimeWarning: overflow encountered in matmul
+  grad[:n_features] = X.T @ grad_pointwise + l2_reg_strength * weights
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/linear_model/_linear_loss.py:330: RuntimeWarning: invalid value encountered in matmul
+  grad[:n_features] = X.T @ grad_pointwise + l2_reg_strength * weights
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:203: RuntimeWarning: divide by zero encountered in matmul
+  ret = a @ b
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:203: RuntimeWarning: overflow encountered in matmul
+  ret = a @ b
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:203: RuntimeWarning: invalid value encountered in matmul
+  ret = a @ b
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:203: RuntimeWarning: divide by zero encountered in matmul
+  ret = a @ b
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:203: RuntimeWarning: overflow encountered in matmul
+  ret = a @ b
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:203: RuntimeWarning: invalid value encountered in matmul
+  ret = a @ b
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/linear_model/_linear_loss.py:200: RuntimeWarning: divide by zero encountered in matmul
+  raw_prediction = X @ weights + intercept
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/linear_model/_linear_loss.py:200: RuntimeWarning: overflow encountered in matmul
+  raw_prediction = X @ weights + intercept
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/linear_model/_linear_loss.py:200: RuntimeWarning: invalid value encountered in matmul
+  raw_prediction = X @ weights + intercept
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/linear_model/_linear_loss.py:330: RuntimeWarning: divide by zero encountered in matmul
+  grad[:n_features] = X.T @ grad_pointwise + l2_reg_strength * weights
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/linear_model/_linear_loss.py:330: RuntimeWarning: overflow encountered in matmul
+  grad[:n_features] = X.T @ grad_pointwise + l2_reg_strength * weights
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/linear_model/_linear_loss.py:330: RuntimeWarning: invalid value encountered in matmul
+  grad[:n_features] = X.T @ grad_pointwise + l2_reg_strength * weights
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:203: RuntimeWarning: divide by zero encountered in matmul
+  ret = a @ b
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:203: RuntimeWarning: overflow encountered in matmul
+  ret = a @ b
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:203: RuntimeWarning: invalid value encountered in matmul
+  ret = a @ b
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:203: RuntimeWarning: divide by zero encountered in matmul
+  ret = a @ b
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:203: RuntimeWarning: overflow encountered in matmul
+  ret = a @ b
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:203: RuntimeWarning: invalid value encountered in matmul
+  ret = a @ b
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/linear_model/_linear_loss.py:200: RuntimeWarning: divide by zero encountered in matmul
+  raw_prediction = X @ weights + intercept
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/linear_model/_linear_loss.py:200: RuntimeWarning: overflow encountered in matmul
+  raw_prediction = X @ weights + intercept
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/linear_model/_linear_loss.py:200: RuntimeWarning: invalid value encountered in matmul
+  raw_prediction = X @ weights + intercept
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/linear_model/_linear_loss.py:330: RuntimeWarning: divide by zero encountered in matmul
+  grad[:n_features] = X.T @ grad_pointwise + l2_reg_strength * weights
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/linear_model/_linear_loss.py:330: RuntimeWarning: overflow encountered in matmul
+  grad[:n_features] = X.T @ grad_pointwise + l2_reg_strength * weights
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/linear_model/_linear_loss.py:330: RuntimeWarning: invalid value encountered in matmul
+  grad[:n_features] = X.T @ grad_pointwise + l2_reg_strength * weights
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:203: RuntimeWarning: divide by zero encountered in matmul
+  ret = a @ b
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:203: RuntimeWarning: overflow encountered in matmul
+  ret = a @ b
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:203: RuntimeWarning: invalid value encountered in matmul
+  ret = a @ b
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:203: RuntimeWarning: divide by zero encountered in matmul
+  ret = a @ b
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:203: RuntimeWarning: overflow encountered in matmul
+  ret = a @ b
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:203: RuntimeWarning: invalid value encountered in matmul
+  ret = a @ b
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/linear_model/_linear_loss.py:200: RuntimeWarning: divide by zero encountered in matmul
+  raw_prediction = X @ weights + intercept
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/linear_model/_linear_loss.py:200: RuntimeWarning: overflow encountered in matmul
+  raw_prediction = X @ weights + intercept
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/linear_model/_linear_loss.py:200: RuntimeWarning: invalid value encountered in matmul
+  raw_prediction = X @ weights + intercept
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/linear_model/_linear_loss.py:330: RuntimeWarning: divide by zero encountered in matmul
+  grad[:n_features] = X.T @ grad_pointwise + l2_reg_strength * weights
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/linear_model/_linear_loss.py:330: RuntimeWarning: overflow encountered in matmul
+  grad[:n_features] = X.T @ grad_pointwise + l2_reg_strength * weights
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/linear_model/_linear_loss.py:330: RuntimeWarning: invalid value encountered in matmul
+  grad[:n_features] = X.T @ grad_pointwise + l2_reg_strength * weights
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:203: RuntimeWarning: divide by zero encountered in matmul
+  ret = a @ b
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:203: RuntimeWarning: overflow encountered in matmul
+  ret = a @ b
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:203: RuntimeWarning: invalid value encountered in matmul
+  ret = a @ b
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:203: RuntimeWarning: divide by zero encountered in matmul
+  ret = a @ b
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:203: RuntimeWarning: overflow encountered in matmul
+  ret = a @ b
+/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:203: RuntimeWarning: invalid value encountered in matmul
+  ret = a @ b
+======================================================================
+V3 BENCHMARK: A-JEPA v3 vs V-JEPA v3 (with Curriculum Learning)
+======================================================================
+Device: cpu
+Models: ['ajepa_v3', 'vjepa_v3']
+Seeds: [42, 123, 456]
+Train samples: 200
+Test samples: 100
+
+============================================================
+Model: AJEPA_V3
+Parameters: 441,648
+Seed: 42
+============================================================
+
+  Phase: EASY (30 epochs)
+    easy Epoch 10/30: Loss = 3.8787
+    easy Epoch 20/30: Loss = 3.7618
+    easy Epoch 30/30: Loss = 3.8315
+
+  Phase: MEDIUM (40 epochs)
+    medium Epoch 10/40: Loss = 3.7496
+    medium Epoch 20/40: Loss = 3.7747
+    medium Epoch 30/40: Loss = 3.7389
+    medium Epoch 40/40: Loss = 3.7575
+
+  Phase: HARD (40 epochs)
+    hard Epoch 10/40: Loss = 3.7941
+    hard Epoch 20/40: Loss = 3.7184
+    hard Epoch 30/40: Loss = 3.7080
+    hard Epoch 40/40: Loss = 3.6808
+
+Results:
+  Train Accuracy: 76.0%
+  Test Accuracy: 52.0%
+
+============================================================
+Model: AJEPA_V3
+Parameters: 441,648
+Seed: 123
+============================================================
+
+  Phase: EASY (30 epochs)
+    easy Epoch 10/30: Loss = 3.9329
+    easy Epoch 20/30: Loss = 3.8283
+    easy Epoch 30/30: Loss = 3.8035
+
+  Phase: MEDIUM (40 epochs)
+    medium Epoch 10/40: Loss = 3.8072
+    medium Epoch 20/40: Loss = 3.7732
+    medium Epoch 30/40: Loss = 3.7959
+    medium Epoch 40/40: Loss = 3.8891
+
+  Phase: HARD (40 epochs)
+    hard Epoch 10/40: Loss = 3.7856
+    hard Epoch 20/40: Loss = 3.8205
+    hard Epoch 30/40: Loss = 3.8899
+    hard Epoch 40/40: Loss = 3.8445
+
+Results:
+  Train Accuracy: 71.5%
+  Test Accuracy: 48.0%
+
+============================================================
+Model: AJEPA_V3
+Parameters: 441,648
+Seed: 456
+============================================================
+
+  Phase: EASY (30 epochs)
+    easy Epoch 10/30: Loss = 3.8077
+    easy Epoch 20/30: Loss = 3.7412
+    easy Epoch 30/30: Loss = 3.7168
+
+  Phase: MEDIUM (40 epochs)
+    medium Epoch 10/40: Loss = 3.7466
+    medium Epoch 20/40: Loss = 3.8831
+    medium Epoch 30/40: Loss = 3.8044
+    medium Epoch 40/40: Loss = 3.7521
+
+  Phase: HARD (40 epochs)
+    hard Epoch 10/40: Loss = 3.7261
+    hard Epoch 20/40: Loss = 3.7598
+    hard Epoch 30/40: Loss = 3.6905
+    hard Epoch 40/40: Loss = 3.6762
+
+Results:
+  Train Accuracy: 72.5%
+  Test Accuracy: 52.0%
+
+============================================================
+Model: VJEPA_V3
+Parameters: 2,721,088
+Seed: 42
+============================================================
+
+  Phase: EASY (30 epochs)
+    easy Epoch 10/30: Loss = 3.9992
+    easy Epoch 20/30: Loss = 3.9211
+    easy Epoch 30/30: Loss = 3.8678
+
+  Phase: MEDIUM (40 epochs)
+    medium Epoch 10/40: Loss = 3.9920
+    medium Epoch 20/40: Loss = 3.9639
+    medium Epoch 30/40: Loss = 3.8817
+    medium Epoch 40/40: Loss = 3.8342
+
+  Phase: HARD (40 epochs)
+    hard Epoch 10/40: Loss = 3.9461
+    hard Epoch 20/40: Loss = 3.8932
+    hard Epoch 30/40: Loss = 3.8279
+    hard Epoch 40/40: Loss = 3.7913
+
+Results:
+  Train Accuracy: 80.0%
+  Test Accuracy: 52.0%
+
+============================================================
+Model: VJEPA_V3
+Parameters: 2,721,088
+Seed: 123
+============================================================
+
+  Phase: EASY (30 epochs)
+    easy Epoch 10/30: Loss = 4.0915
+    easy Epoch 20/30: Loss = 3.9597
+    easy Epoch 30/30: Loss = 3.9382
+
+  Phase: MEDIUM (40 epochs)
+    medium Epoch 10/40: Loss = 3.9457
+    medium Epoch 20/40: Loss = 3.8992
+    medium Epoch 30/40: Loss = 3.8500
+    medium Epoch 40/40: Loss = 3.8086
+
+  Phase: HARD (40 epochs)
+    hard Epoch 10/40: Loss = 3.8923
+    hard Epoch 20/40: Loss = 3.8421
+    hard Epoch 30/40: Loss = 3.7915
+    hard Epoch 40/40: Loss = 3.7484
+
+Results:
+  Train Accuracy: 75.0%
+  Test Accuracy: 49.0%
+
+============================================================
+Model: VJEPA_V3
+Parameters: 2,721,088
+Seed: 456
+============================================================
+
+  Phase: EASY (30 epochs)
+    easy Epoch 10/30: Loss = 3.9563
+    easy Epoch 20/30: Loss = 3.7645
+    easy Epoch 30/30: Loss = 3.7655
+
+  Phase: MEDIUM (40 epochs)
+    medium Epoch 10/40: Loss = 3.8439
+    medium Epoch 20/40: Loss = 3.8181
+    medium Epoch 30/40: Loss = 3.8587
+    medium Epoch 40/40: Loss = 3.8434
+
+  Phase: HARD (40 epochs)
+    hard Epoch 10/40: Loss = 3.9298
+    hard Epoch 20/40: Loss = 3.8676
+    hard Epoch 30/40: Loss = 3.8517
+    hard Epoch 40/40: Loss = 3.8601
+
+Results:
+  Train Accuracy: 71.0%
+  Test Accuracy: 44.0%
+
+======================================================================
+SUMMARY
+======================================================================
+
+AJEPA_V3:
+  Parameters: 441,648
+  Accuracy: 50.7 ± 1.9%
+
+VJEPA_V3:
+  Parameters: 2,721,088
+  Accuracy: 48.3 ± 3.3%
+
+Plot saved to: results/v3_benchmark/v3_benchmark.png
