@@ -4,8 +4,9 @@ V3 Benchmark: Compare A-JEPA v3 vs V-JEPA v3
 Features:
 1. Curriculum learning (Easy → Medium → Hard)
 2. VICReg loss to prevent collapse
-3. Multi-seed evaluation for statistical rigor
-4. Compare v2 vs v3 architectures
+3. Multi-seed evaluation (10 seeds by default) for statistical rigor
+4. Capacity-matched models for fair comparison
+5. Proper statistics: p-values, effect sizes, 95% confidence intervals
 
 Curriculum Phases:
 - Easy (30 epochs): 1 ball, no sparsity - learn "what is an object"
@@ -21,13 +22,15 @@ import os
 import sys
 import time
 from datetime import datetime
+from dataclasses import dataclass, asdict
+from typing import Dict, List, Tuple
 
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, Dataset
-from tqdm import tqdm
+from scipy import stats
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -405,8 +408,14 @@ def run_single_experiment(
     if model_type == 'ajepa_v3':
         model = get_ajepa_v3('default')
         mode = 'ajepa_v3'
+    elif model_type == 'ajepa_v3_large':
+        model = get_ajepa_v3('capacity_matched')
+        mode = 'ajepa_v3'
     elif model_type == 'vjepa_v3':
         model = get_vjepa_v3('default')
+        mode = 'vjepa_v3'
+    elif model_type == 'vjepa_v3_small':
+        model = get_vjepa_v3('capacity_matched')
         mode = 'vjepa_v3'
     elif model_type == 'ajepa_v2':
         model = get_ajepa_v2('default')
@@ -473,6 +482,59 @@ def run_single_experiment(
     }
 
 
+def compute_statistics(results_by_model: Dict[str, List[float]], baseline_model: str = 'ajepa_v3') -> Dict:
+    """
+    Compute comprehensive statistics for each model.
+    
+    Returns:
+    - mean, std
+    - 95% confidence interval
+    - Cohen's d effect size vs baseline
+    - p-value from t-test vs baseline
+    """
+    stats_dict = {}
+    
+    baseline_scores = results_by_model.get(baseline_model, [50.0])
+    baseline_arr = np.array(baseline_scores)
+    
+    for model_name, scores in results_by_model.items():
+        scores_arr = np.array(scores)
+        n = len(scores_arr)
+        mean = np.mean(scores_arr)
+        std = np.std(scores_arr, ddof=1) if n > 1 else 0.0
+        sem = std / np.sqrt(n) if n > 0 else 0.0
+        
+        # 95% confidence interval
+        if n > 1:
+            ci = stats.t.interval(0.95, n-1, loc=mean, scale=sem)
+        else:
+            ci = (mean, mean)
+        
+        # Effect size (Cohen's d) vs baseline
+        if len(baseline_arr) > 1 and n > 1 and model_name != baseline_model:
+            pooled_std = np.sqrt((np.var(scores_arr, ddof=1) + np.var(baseline_arr, ddof=1)) / 2)
+            cohens_d = (mean - np.mean(baseline_arr)) / (pooled_std + 1e-8)
+            
+            # Welch's t-test
+            t_stat, p_value = stats.ttest_ind(scores_arr, baseline_arr, equal_var=False)
+        else:
+            cohens_d = 0.0
+            p_value = 1.0
+        
+        stats_dict[model_name] = {
+            'mean': mean,
+            'std': std,
+            'sem': sem,
+            'ci_low': ci[0],
+            'ci_high': ci[1],
+            'n': n,
+            'cohens_d': cohens_d,
+            'p_value': p_value,
+        }
+    
+    return stats_dict
+
+
 def run_benchmark(
     models: list = None,
     seeds: list = None,
@@ -481,12 +543,20 @@ def run_benchmark(
     batch_size: int = 16,
     output_dir: str = 'results/v3_benchmark',
     device: str = None,
+    include_capacity_matched: bool = False,
 ):
-    """Run full benchmark comparing v2 and v3 models."""
+    """
+    Run full benchmark comparing v2 and v3 models.
+    
+    With include_capacity_matched=True, also runs:
+    - ajepa_v3_large (~2.7M params, matches V-JEPA)
+    - vjepa_v3_small (~442K params, matches A-JEPA)
+    """
     if models is None:
-        models = ['ajepa_v3', 'vjepa_v3', 'ajepa_v2', 'vjepa_v2']
+        models = ['ajepa_v3', 'vjepa_v3']
     if seeds is None:
-        seeds = [42, 123, 456]
+        # Default to 10 seeds for statistical rigor
+        seeds = [42, 123, 456, 789, 1337, 2024, 3141, 4242, 5678, 9999]
     if device is None:
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
@@ -497,9 +567,10 @@ def run_benchmark(
     print("=" * 70)
     print(f"Device: {device}")
     print(f"Models: {models}")
-    print(f"Seeds: {seeds}")
+    print(f"Seeds: {seeds} ({len(seeds)} seeds)")
     print(f"Train samples: {num_train}")
     print(f"Test samples: {num_test}")
+    print(f"Capacity matched: {include_capacity_matched}")
     
     # Run all experiments
     results = []
@@ -516,37 +587,108 @@ def run_benchmark(
             )
             results.append(result)
     
-    # Aggregate results
-    print("\n" + "=" * 70)
-    print("SUMMARY")
-    print("=" * 70)
-    
-    summary = {}
+    # Aggregate results by model
+    results_by_model = {}
+    params_by_model = {}
     for model_type in models:
         model_results = [r for r in results if r['model'] == model_type]
-        accs = [r['test_acc'] for r in model_results]
+        results_by_model[model_type] = [r['test_acc'] for r in model_results]
+        params_by_model[model_type] = model_results[0]['params'] if model_results else 0
+    
+    # Compute statistics
+    stats_dict = compute_statistics(results_by_model, baseline_model='ajepa_v3')
+    
+    # Print detailed results
+    print("\n" + "=" * 70)
+    print("STATISTICAL SUMMARY")
+    print("=" * 70)
+    
+    print(f"\n{'Model':<20} {'Acc ± Std':<15} {'95% CI':<20} {'Cohen\\'s d':<12} {'p-value':<10}")
+    print("-" * 80)
+    
+    for model_type in models:
+        s = stats_dict[model_type]
+        params = params_by_model[model_type]
+        ci_str = f"[{s['ci_low']:.1f}, {s['ci_high']:.1f}]"
+        p_str = f"{s['p_value']:.4f}" if s['p_value'] < 1 else "baseline"
+        d_str = f"{s['cohens_d']:+.2f}" if s['cohens_d'] != 0 else "baseline"
         
+        print(f"{model_type:<20} {s['mean']:.1f} ± {s['std']:.1f}%    {ci_str:<20} {d_str:<12} {p_str:<10}")
+        print(f"  └─ Params: {params:,}, n={s['n']}")
+    
+    # Statistical interpretation
+    if 'ajepa_v3' in models and 'vjepa_v3' in models:
+        ajepa_stats = stats_dict['ajepa_v3']
+        vjepa_stats = stats_dict['vjepa_v3']
+        
+        print("\n" + "=" * 70)
+        print("STATISTICAL INTERPRETATION")
+        print("=" * 70)
+        
+        diff = ajepa_stats['mean'] - vjepa_stats['mean']
+        p_val = vjepa_stats['p_value']
+        d = -vjepa_stats['cohens_d']  # Flip sign since we're comparing to baseline
+        
+        print(f"\nA-JEPA v3 vs V-JEPA v3:")
+        print(f"  Accuracy difference: {diff:+.1f}%")
+        print(f"  Effect size (Cohen's d): {d:.2f} ", end="")
+        if abs(d) < 0.2:
+            print("(negligible)")
+        elif abs(d) < 0.5:
+            print("(small)")
+        elif abs(d) < 0.8:
+            print("(medium)")
+        else:
+            print("(large)")
+        
+        print(f"  p-value: {p_val:.4f} ", end="")
+        if p_val < 0.01:
+            print("(highly significant, p < 0.01)")
+        elif p_val < 0.05:
+            print("(significant, p < 0.05)")
+        else:
+            print("(not significant, p ≥ 0.05)")
+        
+        # Parameter efficiency
+        ajepa_params = params_by_model['ajepa_v3']
+        vjepa_params = params_by_model['vjepa_v3']
+        param_ratio = vjepa_params / ajepa_params
+        print(f"\n  Parameter ratio: V-JEPA uses {param_ratio:.1f}x more params")
+        print(f"  A-JEPA efficiency: {ajepa_stats['mean']/ajepa_params*1e6:.1f} acc%/M-params")
+        print(f"  V-JEPA efficiency: {vjepa_stats['mean']/vjepa_params*1e6:.1f} acc%/M-params")
+    
+    # Build summary dict
+    summary = {}
+    for model_type in models:
         summary[model_type] = {
-            'mean_acc': np.mean(accs),
-            'std_acc': np.std(accs),
-            'params': model_results[0]['params'],
-            'accs': accs,
+            **stats_dict[model_type],
+            'params': params_by_model[model_type],
+            'accs': results_by_model[model_type],
         }
-        
-        print(f"\n{model_type.upper()}:")
-        print(f"  Parameters: {summary[model_type]['params']:,}")
-        print(f"  Accuracy: {summary[model_type]['mean_acc']:.1f} ± {summary[model_type]['std_acc']:.1f}%")
     
     # Save results
+    output = {
+        'config': {
+            'models': models,
+            'seeds': seeds,
+            'num_train': num_train,
+            'num_test': num_test,
+            'batch_size': batch_size,
+        },
+        'summary': {k: {kk: vv for kk, vv in v.items() if kk != 'accs'} for k, v in summary.items()},
+        'raw_results': [{k: v for k, v in r.items() if k != 'losses'} for r in results],
+        'statistics': stats_dict,
+        'timestamp': datetime.now().isoformat(),
+    }
+    
     with open(os.path.join(output_dir, 'results.json'), 'w') as f:
-        json.dump({
-            'summary': {k: {kk: vv for kk, vv in v.items() if kk != 'accs'} for k, v in summary.items()},
-            'raw_results': [{k: v for k, v in r.items() if k != 'losses'} for r in results],
-        }, f, indent=2)
+        json.dump(output, f, indent=2)
     
     # Plot if available
     if HAS_MATPLOTLIB:
         plot_results(summary, output_dir)
+    
+    print(f"\nResults saved to: {output_dir}/results.json")
     
     return summary
 
@@ -592,11 +734,12 @@ def plot_results(summary, output_dir):
 # =============================================================================
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='V3 Benchmark with Curriculum Learning')
-    parser.add_argument('--models', nargs='+', default=['ajepa_v3', 'vjepa_v3', 'ajepa_v2', 'vjepa_v2'],
-                        help='Models to benchmark')
-    parser.add_argument('--seeds', type=int, nargs='+', default=[42, 123, 456],
-                        help='Random seeds for multi-run evaluation')
+    parser = argparse.ArgumentParser(description='V3 Benchmark with Curriculum Learning and Statistical Analysis')
+    parser.add_argument('--models', nargs='+', default=['ajepa_v3', 'vjepa_v3'],
+                        help='Models to benchmark (ajepa_v3, vjepa_v3, ajepa_v2, vjepa_v2)')
+    parser.add_argument('--seeds', type=int, nargs='+', 
+                        default=[42, 123, 456, 789, 1337, 2024, 3141, 4242, 5678, 9999],
+                        help='Random seeds for multi-run evaluation (10 seeds by default)')
     parser.add_argument('--num_train', type=int, default=200,
                         help='Number of training samples per phase')
     parser.add_argument('--num_test', type=int, default=100,
@@ -607,16 +750,27 @@ if __name__ == '__main__':
                         help='Output directory')
     parser.add_argument('--device', type=str, default=None,
                         help='Device (cuda/cpu)')
+    parser.add_argument('--capacity_matched', action='store_true',
+                        help='Include capacity-matched models for fair comparison')
     
     args = parser.parse_args()
     
+    # If capacity matched, add the variants
+    models = args.models.copy() if hasattr(args.models, 'copy') else list(args.models)
+    if args.capacity_matched:
+        if 'ajepa_v3' in models:
+            models.append('ajepa_v3_large')
+        if 'vjepa_v3' in models:
+            models.append('vjepa_v3_small')
+    
     run_benchmark(
-        models=args.models,
+        models=models,
         seeds=args.seeds,
         num_train=args.num_train,
         num_test=args.num_test,
         batch_size=args.batch_size,
         output_dir=args.output_dir,
         device=args.device,
+        include_capacity_matched=args.capacity_matched,
     )
 

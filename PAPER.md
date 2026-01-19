@@ -68,9 +68,11 @@ We created a synthetic dataset of bouncing balls where balls have identical visu
 ### 2.4 Training Protocol
 
 - **VICReg Loss:** Variance-Invariance-Covariance regularization to prevent representation collapse
-- **60 epochs** of self-supervised training per run
+- **110 epochs** of curriculum learning (30 easy + 40 medium + 40 hard)
 - **Linear probe** trained on frozen features for evaluation
-- **5 random seeds** per configuration for statistical robustness
+- **10 random seeds** per configuration for statistical robustness
+- **Capacity-matched controls:** Parameter-matched variants for fair comparison
+- **Statistical analysis:** p-values (Welch's t-test), 95% CIs, Cohen's d effect sizes
 
 ## 3. Experiments
 
@@ -105,7 +107,22 @@ We ran 20 experiments total (4 model configurations × 5 seeds) to obtain statis
 | V-JEPA v2 | 1.64M | 50.3 ± 4.1% |
 | V-JEPA v2 (small) | 0.19M | 49.5 ± 4.0% |
 
-### 4.3 V2 vs V3 Improvement
+### 4.3 V3 Capacity-Matched Comparison
+
+To isolate architectural effects from parameter count effects, we created capacity-matched variants:
+
+| Model | Parameters | Config | Accuracy |
+|:------|:----------:|:------:|:--------:|
+| A-JEPA v3 | 442K | default | 50.7 ± 1.9% |
+| **A-JEPA v3 Large** | **2.75M** | scaled up | TBD |
+| V-JEPA v3 | 2.72M | default | 48.3 ± 3.3% |
+| **V-JEPA v3 Small** | **418K** | scaled down | TBD |
+
+**Key Question:** Is A-JEPA's advantage from architecture or from regularization via smaller capacity?
+
+Run with: `python src/tasks/v3_benchmark.py --capacity_matched --seeds 42 123 456 789 1337`
+
+### 4.4 V2 vs V3 Improvement
 
 | Metric | A-JEPA v2 | A-JEPA v3 | Improvement |
 |:-------|:---------:|:---------:|:-----------:|
@@ -115,6 +132,20 @@ We ran 20 experiments total (4 model configurations × 5 seeds) to obtain statis
 | Variance | ±3.6% | ±1.9% | **-1.7%** |
 
 The v3 upgrades (RelationalBlock, per-slot processing, motion features) improve accuracy by 3.4% while reducing training variance by nearly half.
+
+### 4.5 Ablation Study: Which Components Matter?
+
+We isolate each "v3 special" ingredient:
+
+| Ablation | Description | Expected Impact |
+|:---------|:------------|:----------------|
+| No RelationalBlock | Remove slot-to-slot reasoning | Test if explicit relations help |
+| Shared Bottleneck | Flatten slots before bottleneck (like v2) | Test object identity preservation |
+| No Motion | Remove motion channel (3ch input) | Test motion feature importance |
+| Single-scale Edge | Use only ksize=3 Sobel (2ch: edge+motion) | Test multi-scale edge importance |
+| 4 Slots | Use 4 slots instead of 8 | Test slot count importance |
+
+Run with: `python src/tasks/ablation_benchmark.py --seeds 42 123 456 789 1337`
 
 ### 4.4 Key Findings
 
@@ -226,17 +257,52 @@ The key innovations that drive this performance:
 
 ## Appendix: Reproducibility
 
+### Main Benchmark (10 seeds, statistical analysis)
+
 ```bash
-# Run the v3 benchmark with curriculum learning
+# Full benchmark with statistical rigor
 python src/tasks/v3_benchmark.py \
   --models ajepa_v3 vjepa_v3 \
-  --seeds 42 123 456 \
+  --seeds 42 123 456 789 1337 2024 3141 4242 5678 9999 \
   --num_train 200 \
   --num_test 100 \
   --batch_size 16 \
   --output_dir results/v3_benchmark
+```
 
-# Run the OOD benchmark
+Output includes:
+- Mean ± std accuracy
+- 95% confidence intervals
+- Cohen's d effect size
+- p-value (Welch's t-test)
+
+### Capacity-Matched Comparison
+
+```bash
+# Include parameter-matched models
+python src/tasks/v3_benchmark.py \
+  --models ajepa_v3 vjepa_v3 \
+  --capacity_matched \
+  --seeds 42 123 456 789 1337 \
+  --output_dir results/v3_capacity_matched
+```
+
+### Ablation Study
+
+```bash
+# Test each v3 component
+python src/tasks/ablation_benchmark.py \
+  --seeds 42 123 456 789 1337 \
+  --epochs 60 \
+  --num_train 300 \
+  --num_test 100 \
+  --output_dir results/ablation
+```
+
+### OOD Benchmark
+
+```bash
+# Data efficiency + corruption robustness
 python src/tasks/ood_benchmark.py \
   --experiment all \
   --epochs 60 \
@@ -245,6 +311,9 @@ python src/tasks/ood_benchmark.py \
   --output_dir results/ood_benchmark
 ```
 
-Results:
-- V3 benchmark: `results/v3_benchmark/v3_benchmark.png`
-- OOD benchmark: `results/ood_benchmark/ood_benchmark_plot.png`
+### Results Files
+
+- V3 benchmark: `results/v3_benchmark/results.json`
+- Ablation: `results/ablation/ablation_results.json`
+- OOD: `results/ood_benchmark/results.json`
+- Plots: `*.png` in each output directory

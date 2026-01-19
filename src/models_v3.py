@@ -774,6 +774,7 @@ class VJEPAv3(nn.Module):
         emb_dim: int = 256,
         memory_dim: int = 128,
         num_pred_steps: int = 5,
+        conv_channels: tuple = (64, 128, 256, 256),
     ):
         super().__init__()
         
@@ -784,6 +785,7 @@ class VJEPAv3(nn.Module):
             in_channels=in_channels,
             img_size=img_size,
             emb_dim=emb_dim,
+            conv_channels=conv_channels,
         )
         
         # Temporal GRU
@@ -889,7 +891,15 @@ class VJEPAv3(nn.Module):
 # =============================================================================
 
 def get_ajepa_v3(config: str = 'default') -> AJEPAv3:
-    """Create A-JEPA v3 model."""
+    """
+    Create A-JEPA v3 model.
+    
+    Configs:
+    - 'default': Standard A-JEPA v3 (~442K params)
+    - 'small': Minimal version (~180K params)
+    - 'large': Scaled up to V-JEPA v3 budget (~2.7M params) for capacity matching
+    - 'capacity_matched': Same as 'large' - matches V-JEPA v3 params for fair comparison
+    """
     configs = {
         'default': {
             'in_channels': 4,
@@ -911,33 +921,46 @@ def get_ajepa_v3(config: str = 'default') -> AJEPAv3:
         },
         'large': {
             'in_channels': 4,
-            'num_slots': 12,
-            'slot_dim': 64,
-            'bottleneck_dim': 48,
-            'memory_dim': 96,
+            'num_slots': 16,
+            'slot_dim': 224,
+            'bottleneck_dim': 160,
+            'memory_dim': 320,
             'num_pred_steps': 5,
             'sparsity_lambda': 0.0005,
         },
     }
+    # capacity_matched is alias for large
+    configs['capacity_matched'] = configs['large']
     return AJEPAv3(**configs[config])
 
 
 def get_vjepa_v3(config: str = 'default') -> VJEPAv3:
-    """Create V-JEPA v3 model."""
+    """
+    Create V-JEPA v3 model.
+    
+    Configs:
+    - 'default': Standard V-JEPA v3 (~2.7M params)
+    - 'small': Scaled down to A-JEPA v3 budget (~442K params) for capacity matching
+    - 'capacity_matched': Same as 'small' - matches A-JEPA v3 params for fair comparison
+    """
     configs = {
         'default': {
             'in_channels': 4,
             'emb_dim': 256,
             'memory_dim': 128,
             'num_pred_steps': 5,
+            'conv_channels': (64, 128, 256, 256),
         },
         'small': {
             'in_channels': 4,
-            'emb_dim': 128,
+            'emb_dim': 96,
             'memory_dim': 64,
             'num_pred_steps': 5,
+            'conv_channels': (32, 64, 96, 96),  # Reduced conv channels
         },
     }
+    # capacity_matched is alias for small
+    configs['capacity_matched'] = configs['small']
     return VJEPAv3(**configs[config])
 
 
@@ -951,7 +974,7 @@ if __name__ == '__main__':
     print("=" * 60)
     
     # Test A-JEPA v3
-    print("\n[A-JEPA v3]")
+    print("\n[A-JEPA v3 - Default]")
     model_a = get_ajepa_v3('default')
     params_a = sum(p.numel() for p in model_a.parameters())
     print(f"  Parameters: {params_a:,}")
@@ -972,7 +995,7 @@ if __name__ == '__main__':
     print(f"  Encode output: {z.shape} (for linear probe)")
     
     # Test V-JEPA v3
-    print("\n[V-JEPA v3]")
+    print("\n[V-JEPA v3 - Default]")
     model_v = get_vjepa_v3('default')
     params_v = sum(p.numel() for p in model_v.parameters())
     print(f"  Parameters: {params_v:,}")
@@ -980,6 +1003,32 @@ if __name__ == '__main__':
     output = model_v(context, target)
     print(f"  Loss: {output['loss'].item():.4f}")
     print(f"  Predictions shape: {output['predictions'].shape}")
+    
+    # Capacity-matched tests
+    print("\n" + "=" * 60)
+    print("CAPACITY MATCHING TEST")
+    print("=" * 60)
+    
+    print("\n[A-JEPA v3 - Capacity Matched (scaled up)]")
+    model_a_large = get_ajepa_v3('capacity_matched')
+    params_a_large = sum(p.numel() for p in model_a_large.parameters())
+    print(f"  Parameters: {params_a_large:,}")
+    
+    print("\n[V-JEPA v3 - Capacity Matched (scaled down)]")
+    model_v_small = get_vjepa_v3('capacity_matched')
+    params_v_small = sum(p.numel() for p in model_v_small.parameters())
+    print(f"  Parameters: {params_v_small:,}")
+    
+    print("\n[Parameter Comparison]")
+    print(f"  A-JEPA v3 default:   {params_a:>10,}")
+    print(f"  V-JEPA v3 default:   {params_v:>10,}")
+    print(f"  Ratio (V/A):         {params_v/params_a:>10.1f}x")
+    print()
+    print(f"  A-JEPA v3 scaled:    {params_a_large:>10,}")
+    print(f"  V-JEPA v3 scaled:    {params_v_small:>10,}")
+    print()
+    print(f"  A-JEPA scaled ≈ V-JEPA default? {abs(params_a_large - params_v) / params_v * 100:.1f}% diff")
+    print(f"  V-JEPA scaled ≈ A-JEPA default? {abs(params_v_small - params_a) / params_a * 100:.1f}% diff")
     
     # Component tests
     print("\n[Component Tests]")
@@ -1002,8 +1051,11 @@ if __name__ == '__main__':
     print(f"  SlotTemporalMemory: {slots_seq.shape} -> {out.shape}")
     
     print("\n" + "=" * 60)
-    print(f"A-JEPA v3: {params_a:,} params")
-    print(f"V-JEPA v3: {params_v:,} params")
-    print(f"Ratio: V/A = {params_v/params_a:.1f}x")
+    print("SUMMARY")
+    print("=" * 60)
+    print(f"A-JEPA v3 default:     {params_a:,} params")
+    print(f"V-JEPA v3 default:     {params_v:,} params")
+    print(f"A-JEPA v3 large:       {params_a_large:,} params (capacity-matched to V-JEPA)")
+    print(f"V-JEPA v3 small:       {params_v_small:,} params (capacity-matched to A-JEPA)")
     print("=" * 60)
 
