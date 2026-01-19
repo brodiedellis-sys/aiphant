@@ -1,447 +1,0 @@
-Matplotlib is building the font cache; this may take a moment.
-Warning: umap-learn not found, using t-SNE only
-==========================================================================================
-OOD GENERALIZATION & EMERGENCE TEST
-==========================================================================================
-
-Device: cpu
-Config: large
-
-OOD Perturbations:
-  • texture: Different ball rendering styles
-  • brightness: Extreme brightness variations
-  • count: 3-4 balls instead of 2
-  • size: Very small or very large balls
-  • combined: All perturbations at once
-
-Visualization: Enabled
-
-Creating models with 'large' config...
-V-JEPA v2 params: 2,381,376
-A-JEPA v2 params: 3,688,960
-Ratio: 0.65x
-
-======================================================================
-V-JEPA v2 Large
-======================================================================
-Parameters: 2,381,376
-Embedding dim: 192
-
-Phase 1: Self-supervised training (25 epochs)...
-V-JEPA v2 Large SSL:   0%|          | 0/25 [00:00<?, ?it/s]V-JEPA v2 Large SSL:   0%|          | 0/25 [00:12<?, ?it/s, loss=-1.2777]V-JEPA v2 Large SSL:   4%|▍         | 1/25 [00:12<05:02, 12.61s/it, loss=-1.2777]V-JEPA v2 Large SSL:   4%|▍         | 1/25 [00:25<05:02, 12.61s/it, loss=-2.8495]V-JEPA v2 Large SSL:   8%|▊         | 2/25 [00:25<04:52, 12.70s/it, loss=-2.8495]V-JEPA v2 Large SSL:   8%|▊         | 2/25 [00:36<04:52, 12.70s/it, loss=-3.1509]V-JEPA v2 Large SSL:  12%|█▏        | 3/25 [00:36<04:24, 12.02s/it, loss=-3.1509]V-JEPA v2 Large SSL:  12%|█▏        | 3/25 [00:47<04:24, 12.02s/it, loss=-3.1528]V-JEPA v2 Large SSL:  16%|█▌        | 4/25 [00:47<04:05, 11.71s/it, loss=-3.1528]V-JEPA v2 Large SSL:  16%|█▌        | 4/25 [00:58<04:05, 11.71s/it, loss=-2.5231]V-JEPA v2 Large SSL:  20%|██        | 5/25 [00:58<03:49, 11.46s/it, loss=-2.5231]V-JEPA v2 Large SSL:  20%|██        | 5/25 [01:09<03:49, 11.46s/it, loss=-2.3142]V-JEPA v2 Large SSL:  24%|██▍       | 6/25 [01:09<03:35, 11.34s/it, loss=-2.3142]V-JEPA v2 Large SSL:  24%|██▍       | 6/25 [01:20<03:35, 11.34s/it, loss=-2.3426]V-JEPA v2 Large SSL:  28%|██▊       | 7/25 [01:20<03:22, 11.22s/it, loss=-2.3426]V-JEPA v2 Large SSL:  28%|██▊       | 7/25 [01:32<03:22, 11.22s/it, loss=-2.1643]V-JEPA v2 Large SSL:  32%|███▏      | 8/25 [01:32<03:10, 11.18s/it, loss=-2.1643]V-JEPA v2 Large SSL:  32%|███▏      | 8/25 [01:43<03:10, 11.18s/it, loss=-2.2674]V-JEPA v2 Large SSL:  36%|███▌      | 9/25 [01:43<03:00, 11.26s/it, loss=-2.2674]V-JEPA v2 Large SSL:  36%|███▌      | 9/25 [01:54<03:00, 11.26s/it, loss=-2.1526]V-JEPA v2 Large SSL:  40%|████      | 10/25 [01:54<02:49, 11.30s/it, loss=-2.1526]V-JEPA v2 Large SSL:  40%|████      | 10/25 [02:06<02:49, 11.30s/it, loss=-1.9985]V-JEPA v2 Large SSL:  44%|████▍     | 11/25 [02:06<02:39, 11.37s/it, loss=-1.9985]V-JEPA v2 Large SSL:  44%|████▍     | 11/25 [02:17<02:39, 11.37s/it, loss=-1.4677]V-JEPA v2 Large SSL:  48%|████▊     | 12/25 [02:17<02:26, 11.28s/it, loss=-1.4677]V-JEPA v2 Large SSL:  48%|████▊     | 12/25 [02:28<02:26, 11.28s/it, loss=-1.5802]V-JEPA v2 Large SSL:  52%|█████▏    | 13/25 [02:28<02:14, 11.24s/it, loss=-1.5802]V-JEPA v2 Large SSL:  52%|█████▏    | 13/25 [02:39<02:14, 11.24s/it, loss=-1.6511]V-JEPA v2 Large SSL:  56%|█████▌    | 14/25 [02:39<02:02, 11.18s/it, loss=-1.6511]V-JEPA v2 Large SSL:  56%|█████▌    | 14/25 [02:50<02:02, 11.18s/it, loss=-1.6320]V-JEPA v2 Large SSL:  60%|██████    | 15/25 [02:50<01:51, 11.18s/it, loss=-1.6320]V-JEPA v2 Large SSL:  60%|██████    | 15/25 [03:01<01:51, 11.18s/it, loss=-1.3432]V-JEPA v2 Large SSL:  64%|██████▍   | 16/25 [03:01<01:40, 11.15s/it, loss=-1.3432]V-JEPA v2 Large SSL:  64%|██████▍   | 16/25 [03:13<01:40, 11.15s/it, loss=-1.3750]V-JEPA v2 Large SSL:  68%|██████▊   | 17/25 [03:13<01:29, 11.17s/it, loss=-1.3750]V-JEPA v2 Large SSL:  68%|██████▊   | 17/25 [03:24<01:29, 11.17s/it, loss=-1.2862]V-JEPA v2 Large SSL:  72%|███████▏  | 18/25 [03:24<01:18, 11.15s/it, loss=-1.2862]V-JEPA v2 Large SSL:  72%|███████▏  | 18/25 [03:35<01:18, 11.15s/it, loss=-1.4006]V-JEPA v2 Large SSL:  76%|███████▌  | 19/25 [03:35<01:07, 11.19s/it, loss=-1.4006]V-JEPA v2 Large SSL:  76%|███████▌  | 19/25 [03:46<01:07, 11.19s/it, loss=-1.2110]V-JEPA v2 Large SSL:  80%|████████  | 20/25 [03:46<00:55, 11.11s/it, loss=-1.2110]V-JEPA v2 Large SSL:  80%|████████  | 20/25 [03:57<00:55, 11.11s/it, loss=-1.2103]V-JEPA v2 Large SSL:  84%|████████▍ | 21/25 [03:57<00:44, 11.05s/it, loss=-1.2103]V-JEPA v2 Large SSL:  84%|████████▍ | 21/25 [04:08<00:44, 11.05s/it, loss=-1.2208]V-JEPA v2 Large SSL:  88%|████████▊ | 22/25 [04:08<00:33, 11.03s/it, loss=-1.2208]V-JEPA v2 Large SSL:  88%|████████▊ | 22/25 [04:19<00:33, 11.03s/it, loss=-1.0767]V-JEPA v2 Large SSL:  92%|█████████▏| 23/25 [04:19<00:21, 11.00s/it, loss=-1.0767]V-JEPA v2 Large SSL:  92%|█████████▏| 23/25 [04:30<00:21, 11.00s/it, loss=-1.1271]V-JEPA v2 Large SSL:  96%|█████████▌| 24/25 [04:30<00:10, 10.98s/it, loss=-1.1271]V-JEPA v2 Large SSL:  96%|█████████▌| 24/25 [04:41<00:10, 10.98s/it, loss=-1.1360]V-JEPA v2 Large SSL: 100%|██████████| 25/25 [04:41<00:00, 10.96s/it, loss=-1.1360]V-JEPA v2 Large SSL: 100%|██████████| 25/25 [04:41<00:00, 11.24s/it, loss=-1.1360]
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:350: RuntimeWarning: divide by zero encountered in matmul
-  Q, _ = normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:350: RuntimeWarning: overflow encountered in matmul
-  Q, _ = normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:350: RuntimeWarning: invalid value encountered in matmul
-  Q, _ = normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:351: RuntimeWarning: divide by zero encountered in matmul
-  Q, _ = normalizer(A.T @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:351: RuntimeWarning: overflow encountered in matmul
-  Q, _ = normalizer(A.T @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:351: RuntimeWarning: invalid value encountered in matmul
-  Q, _ = normalizer(A.T @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:355: RuntimeWarning: divide by zero encountered in matmul
-  Q, _ = qr_normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:355: RuntimeWarning: overflow encountered in matmul
-  Q, _ = qr_normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:355: RuntimeWarning: invalid value encountered in matmul
-  Q, _ = qr_normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:577: RuntimeWarning: divide by zero encountered in matmul
-  B = Q.T @ M
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:577: RuntimeWarning: overflow encountered in matmul
-  B = Q.T @ M
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:577: RuntimeWarning: invalid value encountered in matmul
-  B = Q.T @ M
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:590: RuntimeWarning: divide by zero encountered in matmul
-  U = Q @ Uhat
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:590: RuntimeWarning: overflow encountered in matmul
-  U = Q @ Uhat
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:590: RuntimeWarning: invalid value encountered in matmul
-  U = Q @ Uhat
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:350: RuntimeWarning: divide by zero encountered in matmul
-  Q, _ = normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:350: RuntimeWarning: overflow encountered in matmul
-  Q, _ = normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:350: RuntimeWarning: invalid value encountered in matmul
-  Q, _ = normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:351: RuntimeWarning: divide by zero encountered in matmul
-  Q, _ = normalizer(A.T @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:351: RuntimeWarning: overflow encountered in matmul
-  Q, _ = normalizer(A.T @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:351: RuntimeWarning: invalid value encountered in matmul
-  Q, _ = normalizer(A.T @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:355: RuntimeWarning: divide by zero encountered in matmul
-  Q, _ = qr_normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:355: RuntimeWarning: overflow encountered in matmul
-  Q, _ = qr_normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:355: RuntimeWarning: invalid value encountered in matmul
-  Q, _ = qr_normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:577: RuntimeWarning: divide by zero encountered in matmul
-  B = Q.T @ M
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:577: RuntimeWarning: overflow encountered in matmul
-  B = Q.T @ M
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:577: RuntimeWarning: invalid value encountered in matmul
-  B = Q.T @ M
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:590: RuntimeWarning: divide by zero encountered in matmul
-  U = Q @ Uhat
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:590: RuntimeWarning: overflow encountered in matmul
-  U = Q @ Uhat
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:590: RuntimeWarning: invalid value encountered in matmul
-  U = Q @ Uhat
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:350: RuntimeWarning: divide by zero encountered in matmul
-  Q, _ = normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:350: RuntimeWarning: overflow encountered in matmul
-  Q, _ = normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:350: RuntimeWarning: invalid value encountered in matmul
-  Q, _ = normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:351: RuntimeWarning: divide by zero encountered in matmul
-  Q, _ = normalizer(A.T @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:351: RuntimeWarning: overflow encountered in matmul
-  Q, _ = normalizer(A.T @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:351: RuntimeWarning: invalid value encountered in matmul
-  Q, _ = normalizer(A.T @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:355: RuntimeWarning: divide by zero encountered in matmul
-  Q, _ = qr_normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:355: RuntimeWarning: overflow encountered in matmul
-  Q, _ = qr_normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:355: RuntimeWarning: invalid value encountered in matmul
-  Q, _ = qr_normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:577: RuntimeWarning: divide by zero encountered in matmul
-  B = Q.T @ M
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:577: RuntimeWarning: overflow encountered in matmul
-  B = Q.T @ M
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:577: RuntimeWarning: invalid value encountered in matmul
-  B = Q.T @ M
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:590: RuntimeWarning: divide by zero encountered in matmul
-  U = Q @ Uhat
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:590: RuntimeWarning: overflow encountered in matmul
-  U = Q @ Uhat
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:590: RuntimeWarning: invalid value encountered in matmul
-  U = Q @ Uhat
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:350: RuntimeWarning: divide by zero encountered in matmul
-  Q, _ = normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:350: RuntimeWarning: overflow encountered in matmul
-  Q, _ = normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:350: RuntimeWarning: invalid value encountered in matmul
-  Q, _ = normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:351: RuntimeWarning: divide by zero encountered in matmul
-  Q, _ = normalizer(A.T @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:351: RuntimeWarning: overflow encountered in matmul
-  Q, _ = normalizer(A.T @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:351: RuntimeWarning: invalid value encountered in matmul
-  Q, _ = normalizer(A.T @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:355: RuntimeWarning: divide by zero encountered in matmul
-  Q, _ = qr_normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:355: RuntimeWarning: overflow encountered in matmul
-  Q, _ = qr_normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:355: RuntimeWarning: invalid value encountered in matmul
-  Q, _ = qr_normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:577: RuntimeWarning: divide by zero encountered in matmul
-  B = Q.T @ M
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:577: RuntimeWarning: overflow encountered in matmul
-  B = Q.T @ M
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:577: RuntimeWarning: invalid value encountered in matmul
-  B = Q.T @ M
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:590: RuntimeWarning: divide by zero encountered in matmul
-  U = Q @ Uhat
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:590: RuntimeWarning: overflow encountered in matmul
-  U = Q @ Uhat
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:590: RuntimeWarning: invalid value encountered in matmul
-  U = Q @ Uhat
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:350: RuntimeWarning: divide by zero encountered in matmul
-  Q, _ = normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:350: RuntimeWarning: overflow encountered in matmul
-  Q, _ = normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:350: RuntimeWarning: invalid value encountered in matmul
-  Q, _ = normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:351: RuntimeWarning: divide by zero encountered in matmul
-  Q, _ = normalizer(A.T @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:351: RuntimeWarning: overflow encountered in matmul
-  Q, _ = normalizer(A.T @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:351: RuntimeWarning: invalid value encountered in matmul
-  Q, _ = normalizer(A.T @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:355: RuntimeWarning: divide by zero encountered in matmul
-  Q, _ = qr_normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:355: RuntimeWarning: overflow encountered in matmul
-  Q, _ = qr_normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:355: RuntimeWarning: invalid value encountered in matmul
-  Q, _ = qr_normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:577: RuntimeWarning: divide by zero encountered in matmul
-  B = Q.T @ M
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:577: RuntimeWarning: overflow encountered in matmul
-  B = Q.T @ M
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:577: RuntimeWarning: invalid value encountered in matmul
-  B = Q.T @ M
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:590: RuntimeWarning: divide by zero encountered in matmul
-  U = Q @ Uhat
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:590: RuntimeWarning: overflow encountered in matmul
-  U = Q @ Uhat
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:590: RuntimeWarning: invalid value encountered in matmul
-  U = Q @ Uhat
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:350: RuntimeWarning: divide by zero encountered in matmul
-  Q, _ = normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:350: RuntimeWarning: overflow encountered in matmul
-  Q, _ = normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:350: RuntimeWarning: invalid value encountered in matmul
-  Q, _ = normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:351: RuntimeWarning: divide by zero encountered in matmul
-  Q, _ = normalizer(A.T @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:351: RuntimeWarning: overflow encountered in matmul
-  Q, _ = normalizer(A.T @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:351: RuntimeWarning: invalid value encountered in matmul
-  Q, _ = normalizer(A.T @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:355: RuntimeWarning: divide by zero encountered in matmul
-  Q, _ = qr_normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:355: RuntimeWarning: overflow encountered in matmul
-  Q, _ = qr_normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:355: RuntimeWarning: invalid value encountered in matmul
-  Q, _ = qr_normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:577: RuntimeWarning: divide by zero encountered in matmul
-  B = Q.T @ M
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:577: RuntimeWarning: overflow encountered in matmul
-  B = Q.T @ M
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:577: RuntimeWarning: invalid value encountered in matmul
-  B = Q.T @ M
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:590: RuntimeWarning: divide by zero encountered in matmul
-  U = Q @ Uhat
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:590: RuntimeWarning: overflow encountered in matmul
-  U = Q @ Uhat
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:590: RuntimeWarning: invalid value encountered in matmul
-  U = Q @ Uhat
-
-Phase 2: Training linear probe...
-
-Phase 3: Evaluating ID and OOD...
-  ID: 89.0% (separation: 2.75)
-  OOD_texture: 92.0% (separation: 1.88)
-  OOD_brightness: 94.0% (separation: 2.03)
-  OOD_count: 98.0% (separation: 4.50)
-  OOD_size: 83.0% (separation: 1.93)
-  OOD_combined: 85.0% (separation: 3.08)
-
-======================================================================
-A-JEPA v2 Large
-======================================================================
-Parameters: 3,688,960
-Embedding dim: 192
-
-Phase 1: Self-supervised training (25 epochs)...
-A-JEPA v2 Large SSL:   0%|          | 0/25 [00:00<?, ?it/s]A-JEPA v2 Large SSL:   0%|          | 0/25 [00:04<?, ?it/s, loss=-0.7962]A-JEPA v2 Large SSL:   4%|▍         | 1/25 [00:04<01:42,  4.28s/it, loss=-0.7962]A-JEPA v2 Large SSL:   4%|▍         | 1/25 [00:08<01:42,  4.28s/it, loss=-2.5431]A-JEPA v2 Large SSL:   8%|▊         | 2/25 [00:08<01:38,  4.27s/it, loss=-2.5431]A-JEPA v2 Large SSL:   8%|▊         | 2/25 [00:12<01:38,  4.27s/it, loss=-3.0520]A-JEPA v2 Large SSL:  12%|█▏        | 3/25 [00:12<01:33,  4.27s/it, loss=-3.0520]A-JEPA v2 Large SSL:  12%|█▏        | 3/25 [00:17<01:33,  4.27s/it, loss=-3.1332]A-JEPA v2 Large SSL:  16%|█▌        | 4/25 [00:17<01:29,  4.27s/it, loss=-3.1332]A-JEPA v2 Large SSL:  16%|█▌        | 4/25 [00:21<01:29,  4.27s/it, loss=-3.1401]A-JEPA v2 Large SSL:  20%|██        | 5/25 [00:21<01:25,  4.27s/it, loss=-3.1401]A-JEPA v2 Large SSL:  20%|██        | 5/25 [00:25<01:25,  4.27s/it, loss=-3.0538]A-JEPA v2 Large SSL:  24%|██▍       | 6/25 [00:25<01:20,  4.26s/it, loss=-3.0538]A-JEPA v2 Large SSL:  24%|██▍       | 6/25 [00:29<01:20,  4.26s/it, loss=-2.9081]A-JEPA v2 Large SSL:  28%|██▊       | 7/25 [00:29<01:16,  4.26s/it, loss=-2.9081]A-JEPA v2 Large SSL:  28%|██▊       | 7/25 [00:34<01:16,  4.26s/it, loss=-2.8478]A-JEPA v2 Large SSL:  32%|███▏      | 8/25 [00:34<01:12,  4.25s/it, loss=-2.8478]A-JEPA v2 Large SSL:  32%|███▏      | 8/25 [00:38<01:12,  4.25s/it, loss=-2.6655]A-JEPA v2 Large SSL:  36%|███▌      | 9/25 [00:38<01:08,  4.25s/it, loss=-2.6655]A-JEPA v2 Large SSL:  36%|███▌      | 9/25 [00:42<01:08,  4.25s/it, loss=-2.6542]A-JEPA v2 Large SSL:  40%|████      | 10/25 [00:42<01:03,  4.25s/it, loss=-2.6542]A-JEPA v2 Large SSL:  40%|████      | 10/25 [00:46<01:03,  4.25s/it, loss=-2.6968]A-JEPA v2 Large SSL:  44%|████▍     | 11/25 [00:46<00:59,  4.25s/it, loss=-2.6968]A-JEPA v2 Large SSL:  44%|████▍     | 11/25 [00:51<00:59,  4.25s/it, loss=-2.8300]A-JEPA v2 Large SSL:  48%|████▊     | 12/25 [00:51<00:55,  4.25s/it, loss=-2.8300]A-JEPA v2 Large SSL:  48%|████▊     | 12/25 [00:55<00:55,  4.25s/it, loss=-2.8328]A-JEPA v2 Large SSL:  52%|█████▏    | 13/25 [00:55<00:51,  4.25s/it, loss=-2.8328]A-JEPA v2 Large SSL:  52%|█████▏    | 13/25 [00:59<00:51,  4.25s/it, loss=-2.9505]A-JEPA v2 Large SSL:  56%|█████▌    | 14/25 [00:59<00:46,  4.27s/it, loss=-2.9505]A-JEPA v2 Large SSL:  56%|█████▌    | 14/25 [01:03<00:46,  4.27s/it, loss=-1.6230]A-JEPA v2 Large SSL:  60%|██████    | 15/25 [01:03<00:42,  4.26s/it, loss=-1.6230]A-JEPA v2 Large SSL:  60%|██████    | 15/25 [01:08<00:42,  4.26s/it, loss=-2.3970]A-JEPA v2 Large SSL:  64%|██████▍   | 16/25 [01:08<00:38,  4.26s/it, loss=-2.3970]A-JEPA v2 Large SSL:  64%|██████▍   | 16/25 [01:12<00:38,  4.26s/it, loss=-2.9466]A-JEPA v2 Large SSL:  68%|██████▊   | 17/25 [01:12<00:34,  4.25s/it, loss=-2.9466]A-JEPA v2 Large SSL:  68%|██████▊   | 17/25 [01:16<00:34,  4.25s/it, loss=-2.5827]A-JEPA v2 Large SSL:  72%|███████▏  | 18/25 [01:16<00:29,  4.25s/it, loss=-2.5827]A-JEPA v2 Large SSL:  72%|███████▏  | 18/25 [01:20<00:29,  4.25s/it, loss=-2.3231]A-JEPA v2 Large SSL:  76%|███████▌  | 19/25 [01:20<00:25,  4.25s/it, loss=-2.3231]A-JEPA v2 Large SSL:  76%|███████▌  | 19/25 [01:25<00:25,  4.25s/it, loss=-2.7600]A-JEPA v2 Large SSL:  80%|████████  | 20/25 [01:25<00:21,  4.25s/it, loss=-2.7600]A-JEPA v2 Large SSL:  80%|████████  | 20/25 [01:29<00:21,  4.25s/it, loss=-2.4496]A-JEPA v2 Large SSL:  84%|████████▍ | 21/25 [01:29<00:16,  4.25s/it, loss=-2.4496]A-JEPA v2 Large SSL:  84%|████████▍ | 21/25 [01:33<00:16,  4.25s/it, loss=-2.1229]A-JEPA v2 Large SSL:  88%|████████▊ | 22/25 [01:33<00:12,  4.25s/it, loss=-2.1229]A-JEPA v2 Large SSL:  88%|████████▊ | 22/25 [01:37<00:12,  4.25s/it, loss=-2.3719]A-JEPA v2 Large SSL:  92%|█████████▏| 23/25 [01:37<00:08,  4.25s/it, loss=-2.3719]A-JEPA v2 Large SSL:  92%|█████████▏| 23/25 [01:42<00:08,  4.25s/it, loss=-2.6451]A-JEPA v2 Large SSL:  96%|█████████▌| 24/25 [01:42<00:04,  4.25s/it, loss=-2.6451]A-JEPA v2 Large SSL:  96%|█████████▌| 24/25 [01:46<00:04,  4.25s/it, loss=-1.8281]A-JEPA v2 Large SSL: 100%|██████████| 25/25 [01:46<00:00,  4.27s/it, loss=-1.8281]A-JEPA v2 Large SSL: 100%|██████████| 25/25 [01:46<00:00,  4.26s/it, loss=-1.8281]
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:350: RuntimeWarning: divide by zero encountered in matmul
-  Q, _ = normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:350: RuntimeWarning: overflow encountered in matmul
-  Q, _ = normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:350: RuntimeWarning: invalid value encountered in matmul
-  Q, _ = normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:351: RuntimeWarning: divide by zero encountered in matmul
-  Q, _ = normalizer(A.T @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:351: RuntimeWarning: overflow encountered in matmul
-  Q, _ = normalizer(A.T @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:351: RuntimeWarning: invalid value encountered in matmul
-  Q, _ = normalizer(A.T @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:355: RuntimeWarning: divide by zero encountered in matmul
-  Q, _ = qr_normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:355: RuntimeWarning: overflow encountered in matmul
-  Q, _ = qr_normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:355: RuntimeWarning: invalid value encountered in matmul
-  Q, _ = qr_normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:577: RuntimeWarning: divide by zero encountered in matmul
-  B = Q.T @ M
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:577: RuntimeWarning: overflow encountered in matmul
-  B = Q.T @ M
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:577: RuntimeWarning: invalid value encountered in matmul
-  B = Q.T @ M
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:590: RuntimeWarning: divide by zero encountered in matmul
-  U = Q @ Uhat
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:590: RuntimeWarning: overflow encountered in matmul
-  U = Q @ Uhat
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:590: RuntimeWarning: invalid value encountered in matmul
-  U = Q @ Uhat
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:350: RuntimeWarning: divide by zero encountered in matmul
-  Q, _ = normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:350: RuntimeWarning: overflow encountered in matmul
-  Q, _ = normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:350: RuntimeWarning: invalid value encountered in matmul
-  Q, _ = normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:351: RuntimeWarning: divide by zero encountered in matmul
-  Q, _ = normalizer(A.T @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:351: RuntimeWarning: overflow encountered in matmul
-  Q, _ = normalizer(A.T @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:351: RuntimeWarning: invalid value encountered in matmul
-  Q, _ = normalizer(A.T @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:355: RuntimeWarning: divide by zero encountered in matmul
-  Q, _ = qr_normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:355: RuntimeWarning: overflow encountered in matmul
-  Q, _ = qr_normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:355: RuntimeWarning: invalid value encountered in matmul
-  Q, _ = qr_normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:577: RuntimeWarning: divide by zero encountered in matmul
-  B = Q.T @ M
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:577: RuntimeWarning: overflow encountered in matmul
-  B = Q.T @ M
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:577: RuntimeWarning: invalid value encountered in matmul
-  B = Q.T @ M
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:590: RuntimeWarning: divide by zero encountered in matmul
-  U = Q @ Uhat
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:590: RuntimeWarning: overflow encountered in matmul
-  U = Q @ Uhat
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:590: RuntimeWarning: invalid value encountered in matmul
-  U = Q @ Uhat
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:350: RuntimeWarning: divide by zero encountered in matmul
-  Q, _ = normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:350: RuntimeWarning: overflow encountered in matmul
-  Q, _ = normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:350: RuntimeWarning: invalid value encountered in matmul
-  Q, _ = normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:351: RuntimeWarning: divide by zero encountered in matmul
-  Q, _ = normalizer(A.T @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:351: RuntimeWarning: overflow encountered in matmul
-  Q, _ = normalizer(A.T @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:351: RuntimeWarning: invalid value encountered in matmul
-  Q, _ = normalizer(A.T @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:355: RuntimeWarning: divide by zero encountered in matmul
-  Q, _ = qr_normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:355: RuntimeWarning: overflow encountered in matmul
-  Q, _ = qr_normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:355: RuntimeWarning: invalid value encountered in matmul
-  Q, _ = qr_normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:577: RuntimeWarning: divide by zero encountered in matmul
-  B = Q.T @ M
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:577: RuntimeWarning: overflow encountered in matmul
-  B = Q.T @ M
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:577: RuntimeWarning: invalid value encountered in matmul
-  B = Q.T @ M
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:590: RuntimeWarning: divide by zero encountered in matmul
-  U = Q @ Uhat
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:590: RuntimeWarning: overflow encountered in matmul
-  U = Q @ Uhat
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:590: RuntimeWarning: invalid value encountered in matmul
-  U = Q @ Uhat
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:350: RuntimeWarning: divide by zero encountered in matmul
-  Q, _ = normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:350: RuntimeWarning: overflow encountered in matmul
-  Q, _ = normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:350: RuntimeWarning: invalid value encountered in matmul
-  Q, _ = normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:351: RuntimeWarning: divide by zero encountered in matmul
-  Q, _ = normalizer(A.T @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:351: RuntimeWarning: overflow encountered in matmul
-  Q, _ = normalizer(A.T @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:351: RuntimeWarning: invalid value encountered in matmul
-  Q, _ = normalizer(A.T @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:355: RuntimeWarning: divide by zero encountered in matmul
-  Q, _ = qr_normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:355: RuntimeWarning: overflow encountered in matmul
-  Q, _ = qr_normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:355: RuntimeWarning: invalid value encountered in matmul
-  Q, _ = qr_normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:577: RuntimeWarning: divide by zero encountered in matmul
-  B = Q.T @ M
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:577: RuntimeWarning: overflow encountered in matmul
-  B = Q.T @ M
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:577: RuntimeWarning: invalid value encountered in matmul
-  B = Q.T @ M
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:590: RuntimeWarning: divide by zero encountered in matmul
-  U = Q @ Uhat
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:590: RuntimeWarning: overflow encountered in matmul
-  U = Q @ Uhat
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:590: RuntimeWarning: invalid value encountered in matmul
-  U = Q @ Uhat
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:350: RuntimeWarning: divide by zero encountered in matmul
-  Q, _ = normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:350: RuntimeWarning: overflow encountered in matmul
-  Q, _ = normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:350: RuntimeWarning: invalid value encountered in matmul
-  Q, _ = normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:351: RuntimeWarning: divide by zero encountered in matmul
-  Q, _ = normalizer(A.T @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:351: RuntimeWarning: overflow encountered in matmul
-  Q, _ = normalizer(A.T @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:351: RuntimeWarning: invalid value encountered in matmul
-  Q, _ = normalizer(A.T @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:355: RuntimeWarning: divide by zero encountered in matmul
-  Q, _ = qr_normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:355: RuntimeWarning: overflow encountered in matmul
-  Q, _ = qr_normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:355: RuntimeWarning: invalid value encountered in matmul
-  Q, _ = qr_normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:577: RuntimeWarning: divide by zero encountered in matmul
-  B = Q.T @ M
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:577: RuntimeWarning: overflow encountered in matmul
-  B = Q.T @ M
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:577: RuntimeWarning: invalid value encountered in matmul
-  B = Q.T @ M
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:590: RuntimeWarning: divide by zero encountered in matmul
-  U = Q @ Uhat
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:590: RuntimeWarning: overflow encountered in matmul
-  U = Q @ Uhat
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:590: RuntimeWarning: invalid value encountered in matmul
-  U = Q @ Uhat
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:350: RuntimeWarning: divide by zero encountered in matmul
-  Q, _ = normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:350: RuntimeWarning: overflow encountered in matmul
-  Q, _ = normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:350: RuntimeWarning: invalid value encountered in matmul
-  Q, _ = normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:351: RuntimeWarning: divide by zero encountered in matmul
-  Q, _ = normalizer(A.T @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:351: RuntimeWarning: overflow encountered in matmul
-  Q, _ = normalizer(A.T @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:351: RuntimeWarning: invalid value encountered in matmul
-  Q, _ = normalizer(A.T @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:355: RuntimeWarning: divide by zero encountered in matmul
-  Q, _ = qr_normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:355: RuntimeWarning: overflow encountered in matmul
-  Q, _ = qr_normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:355: RuntimeWarning: invalid value encountered in matmul
-  Q, _ = qr_normalizer(A @ Q)
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:577: RuntimeWarning: divide by zero encountered in matmul
-  B = Q.T @ M
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:577: RuntimeWarning: overflow encountered in matmul
-  B = Q.T @ M
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:577: RuntimeWarning: invalid value encountered in matmul
-  B = Q.T @ M
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:590: RuntimeWarning: divide by zero encountered in matmul
-  U = Q @ Uhat
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:590: RuntimeWarning: overflow encountered in matmul
-  U = Q @ Uhat
-/Users/blap/AIphant/venv/lib/python3.14/site-packages/sklearn/utils/extmath.py:590: RuntimeWarning: invalid value encountered in matmul
-  U = Q @ Uhat
-
-Phase 2: Training linear probe...
-
-Phase 3: Evaluating ID and OOD...
-  ID: 50.0% (separation: 0.13)
-  OOD_texture: 50.0% (separation: 0.13)
-  OOD_brightness: 50.0% (separation: 0.13)
-  OOD_count: 50.0% (separation: 0.13)
-  OOD_size: 50.0% (separation: 0.13)
-  OOD_combined: 50.0% (separation: 0.13)
-
-
-==========================================================================================
-        OOD GENERALIZATION: V-JEPA v2 vs A-JEPA v2 (LARGE)
-==========================================================================================
-
-Condition                  V-JEPA v2       A-JEPA v2         Δ (A-V)          Winner
-------------------------------------------------------------------------------------------
-ID                             89.0%           50.0%          -39.0%        V-JEPA ✓
-OOD_texture                    92.0%           50.0%          -42.0%        V-JEPA ✓
-OOD_brightness                 94.0%           50.0%          -44.0%        V-JEPA ✓
-OOD_count                      98.0%           50.0%          -48.0%        V-JEPA ✓
-OOD_size                       83.0%           50.0%          -33.0%        V-JEPA ✓
-OOD_combined                   85.0%           50.0%          -35.0%        V-JEPA ✓
-------------------------------------------------------------------------------------------
-OOD Average                    90.4%           50.0%          -40.4%
-Robustness Gap                 -1.4%            0.0%           +1.4%
-==========================================================================================
-
-==========================================================================================
-🏆 V-JEPA v2 WINS 6/6 conditions!
-
-✗ Hypothesis not confirmed on this run
-==========================================================================================
-
-Results saved to results/ood_emergence_test.txt
-Visualizations saved to results/latent_viz/
