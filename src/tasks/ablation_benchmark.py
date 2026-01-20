@@ -493,7 +493,7 @@ def run_ablation_study(config: AblationConfig):
     
     stats_dict = compute_statistics(results)
     
-    print(f"\n{'Ablation':<25} {'Acc ± Std':<15} {'95% CI':<20} {'Cohen\\'s d':<10}")
+    print(f"\n{'Ablation':<25} {'Acc ± Std':<15} {'95% CI':<20} {'Cohens d':<10}")
     print("-" * 70)
     
     for name, s in stats_dict.items():
