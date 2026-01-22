@@ -1334,10 +1334,45 @@ class TransformerPlanner(nn.Module):
                 pred_tokens = pred_tokens + self.slot_pos_embed[:, :K, :]
                 all_tokens.append(pred_tokens)
 
+        # Stack outputs
+        z_preds = torch.stack(z_predictions, dim=1)  # (B, num_steps, K, bottleneck_dim)
+        idx_logs = torch.stack(idx_logits, dim=1)    # (B, num_steps, K, num_codes)
+        precs = torch.stack(precisions, dim=1)       # (B, num_steps, K)
+
+        # Compute planner's own losses if targets provided
+        planner_cont_loss = None
+        planner_ce_loss = None
+
+        if target_z_q is not None:
+            # Align lengths
+            H = min(z_preds.shape[1], target_z_q.shape[1])
+            pred = z_preds[:, :H]     # (B, H, K, D)
+            tgt = target_z_q[:, :H]   # (B, H, K, D)
+
+            # Continuous loss: cosine similarity
+            pred_norm = F.normalize(pred, dim=-1)
+            tgt_norm = F.normalize(tgt.detach(), dim=-1)
+            sim = torch.sum(pred_norm * tgt_norm, dim=-1)  # (B, H, K)
+            planner_cont_loss = -sim.mean()
+
+        if target_indices is not None and len(idx_logits) > 0:
+            # CE loss: flatten properly (B, H, K, C) -> (N, C)
+            H = min(idx_logs.shape[1], target_indices.shape[1])
+            logits = idx_logs[:, :H]           # (B, H, K, C)
+            targets = target_indices[:, :H]   # (B, H, K)
+
+            # Flatten: (B*H*K, C) and (B*H*K,)
+            B_dim, H_dim, K_dim, C_dim = logits.shape
+            logits_flat = logits.reshape(-1, C_dim)   # (B*H*K, C)
+            targets_flat = targets.reshape(-1)        # (B*H*K,)
+            planner_ce_loss = F.cross_entropy(logits_flat, targets_flat, reduction='mean')
+
         return {
-            'z_predictions': torch.stack(z_predictions, dim=1),  # (B, num_steps, K, bottleneck_dim)
-            'idx_logits': torch.stack(idx_logits, dim=1),  # (B, num_steps, K, num_codes)
-            'precisions': torch.stack(precisions, dim=1),  # (B, num_steps, K)
+            'z_predictions': z_preds,    # (B, num_steps, K, bottleneck_dim)
+            'idx_logits': idx_logs,      # (B, num_steps, K, num_codes)
+            'precisions': precs,         # (B, num_steps, K)
+            'planner_cont_loss': planner_cont_loss,  # Scalar or None
+            'planner_ce_loss': planner_ce_loss,      # Scalar or None
         }
 
 
@@ -1761,10 +1796,12 @@ class AJEPAv4(nn.Module):
         use_topdown_gating: bool = True,  # Phase 4: Top-down gating
         use_structured_memory: bool = True,  # Phase 5: Multi-scale memory
         use_planner: bool = False,  # Phase 6: TransformerPlanner
+        planner_auxiliary: bool = True,  # True=auxiliary (adds loss), False=replaces predictor
         planner_d_model: int = 72,  # Transformer hidden dim
         planner_n_layers: int = 3,  # Transformer layers
         planner_d_ff: int = 256,  # FFN hidden dim
-        ce_weight: float = 0.1,  # Cross-entropy weight for discrete indices
+        ce_weight: float = 0.05,  # Cross-entropy weight for discrete indices (conservative)
+        planner_loss_weight: float = 0.1,  # Weight for auxiliary planner loss (conservative)
     ):
         super().__init__()
 
@@ -1777,7 +1814,9 @@ class AJEPAv4(nn.Module):
         self.use_topdown_gating = use_topdown_gating
         self.use_structured_memory = use_structured_memory
         self.use_planner = use_planner
+        self.planner_auxiliary = planner_auxiliary
         self.ce_weight = ce_weight
+        self.planner_loss_weight = planner_loss_weight
 
         # Encoder with dual pathway and symbolic bottleneck
         self.encoder = AJEPAv4Encoder(
@@ -1807,6 +1846,27 @@ class AJEPAv4(nn.Module):
                 memory_dim=memory_dim,
             )
 
+        # Phase 4: Predictor (always created unless planner replaces it)
+        # In auxiliary mode: predictor is primary, planner adds auxiliary loss
+        # In replace mode: planner replaces predictor
+        if not use_planner or planner_auxiliary:
+            # Create top-down predictor
+            if use_topdown_gating:
+                self.predictor = TopDownPredictor(
+                    num_slots=num_slots,
+                    slot_dim=bottleneck_dim,
+                    num_steps=num_pred_steps,
+                    use_gating=True,
+                )
+            else:
+                self.predictor = SlotPredictorWithPrecision(
+                    num_slots=num_slots,
+                    slot_dim=bottleneck_dim,
+                    num_steps=num_pred_steps,
+                )
+        else:
+            self.predictor = None  # Planner replaces predictor
+
         # Phase 6: TransformerPlanner (optional)
         if use_planner:
             if not use_symbolic_bottleneck:
@@ -1821,24 +1881,8 @@ class AJEPAv4(nn.Module):
                 d_ff=planner_d_ff,
                 num_steps=num_pred_steps,
             )
-            # Still create predictor for backward compatibility / ablation
-            self.predictor = None
         else:
             self.planner = None
-            # Phase 4: Predictor (with or without top-down gating)
-            if use_topdown_gating:
-                self.predictor = TopDownPredictor(
-                    num_slots=num_slots,
-                    slot_dim=bottleneck_dim,
-                    num_steps=num_pred_steps,
-                    use_gating=True,
-                )
-            else:
-                self.predictor = SlotPredictorWithPrecision(
-                    num_slots=num_slots,
-                    slot_dim=bottleneck_dim,
-                    num_steps=num_pred_steps,
-                )
 
         # Training phase for planner curriculum
         self._planner_training_phase = 'A'
@@ -1960,26 +2004,48 @@ class AJEPAv4(nn.Module):
             )  # (B, T, K, D), (B, T, K)
             target_indices = None
 
-        # Predict future states
+        # Initialize planner loss on correct device
+        planner_loss = torch.tensor(0.0, device=z_context.device)
+        planner_output = None
+        pred_output = None
+        idx_logits = None
+
+        # ALWAYS run top-down predictor when auxiliary mode (or no planner)
+        # This ensures predictor is primary in auxiliary mode
+        if not self.use_planner or self.planner_auxiliary:
+            pred_output = self.predictor(z_context)
+            predictions = pred_output['predictions']      # (B, S, K, D)
+            pred_precisions = pred_output['precisions']   # (B, S, K)
+
+        # Run planner if enabled
         if self.use_planner and self.planner is not None:
-            # Use TransformerPlanner
             planner_output = self.planner(
                 z_q=z_context,
                 indices=context_indices,
                 training_phase=self._planner_training_phase,
                 sampling_prob=self._planner_sampling_prob,
-                target_z_q=z_targets,
+                target_z_q=z_targets,       # Planner computes its own loss
                 target_indices=target_indices,
             )
-            predictions = planner_output['z_predictions']  # (B, num_steps, K, D)
-            pred_precisions = planner_output['precisions']  # (B, num_steps, K)
-            idx_logits = planner_output['idx_logits']  # (B, num_steps, K, num_codes)
-        else:
-            # Use standard predictor
-            pred_output = self.predictor(z_context)
-            predictions = pred_output['predictions']  # (B, num_steps, K, D)
-            pred_precisions = pred_output['precisions']  # (B, num_steps, K)
-            idx_logits = None
+
+            if self.planner_auxiliary:
+                # AUXILIARY MODE: Get losses from planner, don't touch predictions
+                # predictions, pred_precisions UNCHANGED from top-down
+                planner_cont_loss = planner_output.get('planner_cont_loss')
+                planner_ce_loss = planner_output.get('planner_ce_loss')
+
+                # Safely handle None losses
+                if planner_cont_loss is None:
+                    planner_cont_loss = torch.tensor(0.0, device=z_context.device)
+                if planner_ce_loss is None:
+                    planner_ce_loss = torch.tensor(0.0, device=z_context.device)
+
+                planner_loss = planner_cont_loss + self.ce_weight * planner_ce_loss
+            else:
+                # REPLACE MODE: Use planner outputs as primary predictions
+                predictions = planner_output['z_predictions']
+                pred_precisions = planner_output['precisions']
+                idx_logits = planner_output['idx_logits']
 
         # Align lengths
         num_steps = min(predictions.shape[1], z_targets.shape[1])
@@ -2005,15 +2071,15 @@ class AJEPAv4(nn.Module):
             # Standard uniform loss
             cont_loss = -similarity.mean()
 
-        # Discrete cross-entropy loss (auxiliary - for planner only)
+        # Discrete cross-entropy loss (for replace mode only - planner already computed its own CE in aux mode)
         ce_loss = torch.tensor(0.0, device=pred.device)
-        if self.use_planner and idx_logits is not None and target_indices is not None:
-            # Align target indices
+        if self.use_planner and not self.planner_auxiliary and idx_logits is not None and target_indices is not None:
+            # Replace mode: compute CE loss for planner predictions
             target_idx = target_indices[:, :num_steps]  # (B, S, K)
 
-            # Cross-entropy loss per-slot per-step
-            B, S, K, C = idx_logits[:, :num_steps].shape
-            logits_flat = idx_logits[:, :num_steps].reshape(-1, C)  # (B*S*K, C)
+            # Cross-entropy loss per-slot per-step (proper flattening)
+            B_dim, S_dim, K_dim, C_dim = idx_logits[:, :num_steps].shape
+            logits_flat = idx_logits[:, :num_steps].reshape(-1, C_dim)  # (B*S*K, C)
             targets_flat = target_idx.reshape(-1)  # (B*S*K,)
             ce_loss = F.cross_entropy(logits_flat, targets_flat, reduction='mean')
 
@@ -2025,6 +2091,10 @@ class AJEPAv4(nn.Module):
 
         # Total loss
         total_loss = pred_loss + aux_loss
+
+        # Add auxiliary planner loss (conservative weight)
+        if self.use_planner and self.planner_auxiliary:
+            total_loss = total_loss + self.planner_loss_weight * planner_loss
 
         result = {
             'loss': total_loss,
@@ -2039,12 +2109,20 @@ class AJEPAv4(nn.Module):
 
         # Add planner-specific outputs
         if self.use_planner:
-            result['ce_loss'] = ce_loss
-            if idx_logits is not None:
-                result['idx_logits'] = idx_logits[:, :num_steps]
+            if self.planner_auxiliary:
+                # Auxiliary mode: report planner's own losses
+                result['planner_loss'] = planner_loss
+                if planner_output is not None:
+                    result['planner_cont_loss'] = planner_output.get('planner_cont_loss')
+                    result['planner_ce_loss'] = planner_output.get('planner_ce_loss')
+            else:
+                # Replace mode: report CE loss
+                result['ce_loss'] = ce_loss
+                if idx_logits is not None:
+                    result['idx_logits'] = idx_logits[:, :num_steps]
 
-        # Add gate values if top-down gating is enabled (non-planner mode)
-        if not self.use_planner and self.use_topdown_gating and 'gate_values' in pred_output:
+        # Add gate values if top-down gating is enabled
+        if pred_output is not None and self.use_topdown_gating and 'gate_values' in pred_output:
             gate_vals = pred_output['gate_values']
             result['gate_values'] = gate_vals[:, :num_steps]
 
@@ -2203,8 +2281,10 @@ def get_ajepa_v4(config: str = 'default') -> AJEPAv4:
             'use_structured_memory': False,  # Like v3 + precision only
             'use_planner': False,
         },
-        # NEW: Planner configurations
-        'with_planner': {
+        # Planner configurations with EXPLICIT modes
+        'with_planner_aux': {
+            # Planner as AUXILIARY - main experiment: "Does imagination help?"
+            # Top-down predictor is primary, planner adds auxiliary loss only
             'in_channels': 4,
             'num_slots': 8,
             'slot_dim': 48,
@@ -2217,16 +2297,19 @@ def get_ajepa_v4(config: str = 'default') -> AJEPAv4:
             'precision_weight': 1.0,
             'use_dual_pathway': True,
             'use_symbolic_bottleneck': True,
-            'use_topdown_gating': False,  # Planner replaces top-down predictor
+            'use_topdown_gating': True,     # TOP-DOWN ENABLED (primary predictor)
             'use_structured_memory': True,
-            'use_planner': True,  # TransformerPlanner enabled
+            'use_planner': True,
+            'planner_auxiliary': True,       # AUXILIARY MODE
             'planner_d_model': 72,
             'planner_n_layers': 3,
             'planner_d_ff': 256,
-            'ce_weight': 0.1,
+            'ce_weight': 0.05,
+            'planner_loss_weight': 0.3,     # Increased from 0.1 to make planner matter
         },
-        'planner_only': {
-            # Minimal v4 with planner (no dual pathway, for comparison)
+        'with_planner_replace': {
+            # Planner REPLACES top-down - exploratory comparison
+            # (old 'with_planner' behavior, now explicitly named)
             'in_channels': 4,
             'num_slots': 8,
             'slot_dim': 48,
@@ -2237,11 +2320,36 @@ def get_ajepa_v4(config: str = 'default') -> AJEPAv4:
             'num_pred_steps': 5,
             'sparsity_lambda': 0.001,
             'precision_weight': 1.0,
-            'use_dual_pathway': False,  # No dual pathway
+            'use_dual_pathway': True,
+            'use_symbolic_bottleneck': True,
+            'use_topdown_gating': False,    # TOP-DOWN DISABLED (planner replaces)
+            'use_structured_memory': True,
+            'use_planner': True,
+            'planner_auxiliary': False,      # REPLACE MODE
+            'planner_d_model': 72,
+            'planner_n_layers': 3,
+            'planner_d_ff': 256,
+            'ce_weight': 0.1,
+        },
+        'planner_only': {
+            # Minimal v4 with planner (no dual pathway, for comparison)
+            # Planner replaces predictor in a simpler architecture
+            'in_channels': 4,
+            'num_slots': 8,
+            'slot_dim': 48,
+            'bottleneck_dim': 32,
+            'spatial_dim': 64,
+            'num_codes': 64,
+            'memory_dim': 64,
+            'num_pred_steps': 5,
+            'sparsity_lambda': 0.001,
+            'precision_weight': 1.0,
+            'use_dual_pathway': False,      # No dual pathway
             'use_symbolic_bottleneck': True,  # Required for planner
             'use_topdown_gating': False,
             'use_structured_memory': False,  # Simple memory
             'use_planner': True,
+            'planner_auxiliary': False,      # REPLACE MODE
             'planner_d_model': 72,
             'planner_n_layers': 3,
             'planner_d_ff': 256,
@@ -2363,29 +2471,44 @@ if __name__ == '__main__':
     print("Testing TransformerPlanner (Phase 6)")
     print("=" * 60)
 
-    # Test with_planner config
-    print("\n--- Testing WITH_PLANNER config ---")
-    model_planner = get_ajepa_v4('with_planner').to(device)
-    params_planner = sum(p.numel() for p in model_planner.parameters())
-    print(f"Parameters: {params_planner:,}")
-    print(f"  - Use planner: {model_planner.use_planner}")
-    print(f"  - CE weight: {model_planner.ce_weight}")
+    # Test with_planner_aux config (AUXILIARY mode - main experiment)
+    print("\n--- Testing WITH_PLANNER_AUX config (AUXILIARY mode) ---")
+    model_aux = get_ajepa_v4('with_planner_aux').to(device)
+    params_aux = sum(p.numel() for p in model_aux.parameters())
+    print(f"Parameters: {params_aux:,}")
+    print(f"  - Use planner: {model_aux.use_planner}")
+    print(f"  - Planner auxiliary: {model_aux.planner_auxiliary}")
+    print(f"  - Use top-down gating: {model_aux.use_topdown_gating}")
+    print(f"  - Planner loss weight: {model_aux.planner_loss_weight}")
 
-    # Test forward pass
-    output_planner = model_planner(context, target)
-    print(f"Loss: {output_planner['loss'].item():.4f}")
-    print(f"Cont loss: {output_planner['cont_loss'].item():.4f}")
-    print(f"CE loss: {output_planner['ce_loss'].item():.4f}")
-    print(f"Predictions shape: {output_planner['predictions'].shape}")
-    if 'idx_logits' in output_planner:
-        print(f"Index logits shape: {output_planner['idx_logits'].shape}")
+    # Test forward pass - should use top-down predictor with planner as auxiliary
+    output_aux = model_aux(context, target)
+    print(f"Loss: {output_aux['loss'].item():.4f}")
+    print(f"Cont loss: {output_aux['cont_loss'].item():.4f}")
+    print(f"Planner loss: {output_aux.get('planner_loss', torch.tensor(0)).item():.4f}")
+    print(f"Predictions shape: {output_aux['predictions'].shape}")
+    if 'gate_values' in output_aux:
+        print(f"Gate values shape: {output_aux['gate_values'].shape} (top-down predictor active!)")
 
-    # Test phase switching
-    print("\n--- Testing planner training phases ---")
+    # Test with_planner_replace config (REPLACE mode)
+    print("\n--- Testing WITH_PLANNER_REPLACE config (REPLACE mode) ---")
+    model_replace = get_ajepa_v4('with_planner_replace').to(device)
+    params_replace = sum(p.numel() for p in model_replace.parameters())
+    print(f"Parameters: {params_replace:,}")
+    print(f"  - Planner auxiliary: {model_replace.planner_auxiliary}")
+
+    output_replace = model_replace(context, target)
+    print(f"Loss: {output_replace['loss'].item():.4f}")
+    print(f"CE loss: {output_replace.get('ce_loss', torch.tensor(0)).item():.4f}")
+    if 'idx_logits' in output_replace:
+        print(f"Index logits shape: {output_replace['idx_logits'].shape}")
+
+    # Test phase switching with auxiliary mode
+    print("\n--- Testing planner training phases (aux mode) ---")
     for phase in ['A', 'B', 'C']:
-        model_planner.set_planner_phase(phase, sampling_prob=0.3 if phase == 'C' else 0.0)
-        output_phase = model_planner(context, target)
-        print(f"  Phase {phase}: Loss = {output_phase['loss'].item():.4f}")
+        model_aux.set_planner_phase(phase, sampling_prob=0.3 if phase == 'C' else 0.0)
+        output_phase = model_aux(context, target)
+        print(f"  Phase {phase}: Loss = {output_phase['loss'].item():.4f}, Planner = {output_phase.get('planner_loss', torch.tensor(0)).item():.4f}")
 
     # Test planner_only config
     print("\n--- Testing PLANNER_ONLY config ---")
@@ -2423,7 +2546,7 @@ if __name__ == '__main__':
 
     # Parameter comparison including planner configs
     print("\n--- Full parameter comparison ---")
-    all_configs = ['default', 'continuous', 'with_planner', 'planner_only']
+    all_configs = ['default', 'continuous', 'with_planner_aux', 'with_planner_replace', 'planner_only']
     for cfg in all_configs:
         m = get_ajepa_v4(cfg).to(device)
         p = sum(x.numel() for x in m.parameters())

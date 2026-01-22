@@ -306,6 +306,7 @@ class CurriculumTrainerV4:
 
             epoch_loss = 0.0
             ce_loss_total = 0.0
+            planner_loss_total = 0.0
             for batch in loader:
                 context = batch['context'].to(self.device)
                 target = batch['target'].to(self.device)
@@ -315,9 +316,12 @@ class CurriculumTrainerV4:
                 output = self.model(context, target)
                 loss = output['loss']
 
-                # Track CE loss for planner models
+                # Track CE loss for planner replace mode
                 if 'ce_loss' in output:
                     ce_loss_total += output['ce_loss'].item()
+                # Track planner loss for auxiliary mode
+                if 'planner_loss' in output:
+                    planner_loss_total += output['planner_loss'].item()
 
                 # Add VICReg
                 if 'predictions' in output and 'targets' in output:
@@ -336,12 +340,15 @@ class CurriculumTrainerV4:
 
             avg_loss = epoch_loss / len(loader)
             avg_ce_loss = ce_loss_total / len(loader) if ce_loss_total > 0 else 0.0
+            avg_planner_loss = planner_loss_total / len(loader) if planner_loss_total > 0 else 0.0
             losses.append(avg_loss)
 
             if verbose and (epoch + 1) % 10 == 0:
                 phase_str = f" [Planner: {planner_phase}, p={sampling_prob:.2f}]" if planner_phase else ""
+                # Show CE loss for replace mode, planner loss for aux mode
                 ce_str = f", CE={avg_ce_loss:.4f}" if avg_ce_loss > 0 else ""
-                print(f"    {phase['name']} Epoch {epoch+1}/{phase['epochs']}: Loss = {avg_loss:.4f}{ce_str}{phase_str}")
+                planner_str = f", PL={avg_planner_loss:.4f}" if avg_planner_loss > 0 else ""
+                print(f"    {phase['name']} Epoch {epoch+1}/{phase['epochs']}: Loss = {avg_loss:.4f}{ce_str}{planner_str}{phase_str}")
 
             self.current_epoch += 1
 
@@ -423,11 +430,88 @@ def train_linear_probe(features, labels, test_features, test_labels):
 
 
 # =============================================================================
+# HORIZON DRIFT EVALUATION
+# =============================================================================
+
+def evaluate_horizon_drift(
+    model,
+    dataset,
+    device: str,
+    num_steps: int = 5,
+) -> Dict[str, List[float]]:
+    """
+    Evaluate prediction error vs horizon step.
+
+    Computes per-step cosine similarity between predictions and targets
+    to measure how error accumulates over prediction horizon.
+
+    Args:
+        model: Trained AJEPAv4 model
+        dataset: CurriculumDatasetV4
+        device: 'cpu' or 'cuda'
+        num_steps: Number of prediction steps
+
+    Returns:
+        dict with:
+            'steps': [1, 2, 3, 4, 5]
+            'step_similarities': List[float] - mean cosine sim per step
+            'step_errors': List[float] - mean error (1 - sim) per step
+            'drift': float - error increase from step 1 to step 5
+    """
+    model.eval()
+    loader = DataLoader(dataset, batch_size=16, shuffle=False)
+
+    # Accumulate per-step similarities
+    step_sims = [[] for _ in range(num_steps)]
+
+    with torch.no_grad():
+        for batch in loader:
+            context = batch['context'].to(device)
+            target = batch['target'].to(device)
+
+            output = model(context, target)
+
+            # Get predictions and targets
+            pred = output['predictions']  # (B, S, K, D)
+            tgt = output['targets']       # (B, S, K, D)
+
+            # Normalize for cosine similarity
+            pred_norm = F.normalize(pred, dim=-1)
+            tgt_norm = F.normalize(tgt, dim=-1)
+
+            # Per-step, per-slot similarity
+            similarity = torch.sum(pred_norm * tgt_norm, dim=-1)  # (B, S, K)
+
+            # Average over batch and slots for each step
+            actual_steps = min(pred.shape[1], num_steps)
+            for step in range(actual_steps):
+                step_sim = similarity[:, step, :].mean().item()
+                step_sims[step].append(step_sim)
+
+    # Compute means
+    step_similarities = [np.mean(sims) if sims else 0.0 for sims in step_sims]
+    step_errors = [1.0 - sim for sim in step_similarities]
+
+    # Compute drift: increase in error from step 1 to final step
+    if len(step_errors) >= 2:
+        drift = step_errors[-1] - step_errors[0]
+    else:
+        drift = 0.0
+
+    return {
+        'steps': list(range(1, num_steps + 1)),
+        'step_similarities': step_similarities,
+        'step_errors': step_errors,
+        'drift': drift,
+    }
+
+
+# =============================================================================
 # SINGLE EXPERIMENT
 # =============================================================================
 
 def run_single_experiment(
-    config: str,  # 'default', 'no_dual', 'no_symbolic', 'no_gating', 'no_structured_mem', 'continuous', 'with_planner', 'planner_only', 'v3'
+    config: str,  # 'default', 'no_dual', 'no_symbolic', 'no_gating', 'no_structured_mem', 'continuous', 'with_planner_aux', 'with_planner_replace', 'planner_only', 'v3'
     seed: int,
     num_train: int = 200,
     num_test: int = 100,
@@ -490,11 +574,24 @@ def run_single_experiment(
         test_features, test_labels,
     )
 
+    # Evaluate horizon drift
+    if verbose:
+        print("\nEvaluating horizon drift...")
+
+    horizon_drift_results = evaluate_horizon_drift(
+        model=model,
+        dataset=test_dataset,
+        device=device,
+        num_steps=5,
+    )
+
     if verbose:
         print(f"\nResults:")
         print(f"  Train accuracy: {train_acc:.1f}%")
         print(f"  Test accuracy: {test_acc:.1f}%")
         print(f"  Training time: {train_time:.1f}s")
+        print(f"  Horizon drift: {horizon_drift_results['drift']:.4f}")
+        print(f"  Step errors: {[f'{e:.3f}' for e in horizon_drift_results['step_errors']]}")
 
     return {
         'config': config,
@@ -504,6 +601,7 @@ def run_single_experiment(
         'test_acc': test_acc,
         'train_time': train_time,
         'final_loss': losses[-1] if losses else None,
+        'horizon_drift': horizon_drift_results,
     }
 
 
@@ -547,6 +645,15 @@ def run_benchmark(
     stats_results = {}
     for config in configs:
         accs = [r['test_acc'] for r in results[config]]
+        drifts = [r['horizon_drift']['drift'] for r in results[config]]
+
+        # Compute mean step errors across seeds
+        num_steps = len(results[config][0]['horizon_drift']['step_errors'])
+        mean_step_errors = []
+        for step in range(num_steps):
+            step_errs = [r['horizon_drift']['step_errors'][step] for r in results[config]]
+            mean_step_errors.append(np.mean(step_errs))
+
         stats_results[config] = {
             'mean': np.mean(accs),
             'std': np.std(accs),
@@ -555,19 +662,33 @@ def run_benchmark(
             'n': len(accs),
             'raw_results': accs,
             'params': results[config][0]['params'],
+            'mean_drift': np.mean(drifts),
+            'std_drift': np.std(drifts),
+            'mean_step_errors': mean_step_errors,
         }
 
     # Print summary
     print("\n" + "=" * 60)
     print("BENCHMARK SUMMARY")
     print("=" * 60)
-    print(f"{'Config':<20} {'Mean':>10} {'Std':>8} {'95% CI':>15} {'Params':>12}")
+    print(f"{'Config':<20} {'Mean':>10} {'Std':>8} {'95% CI':>15} {'Drift':>10}")
     print("-" * 60)
 
     for config in configs:
         s = stats_results[config]
         ci_str = f"[{s['ci_low']:.1f}, {s['ci_high']:.1f}]"
-        print(f"{config:<20} {s['mean']:>10.1f}% {s['std']:>7.1f}% {ci_str:>15} {s['params']:>12,}")
+        print(f"{config:<20} {s['mean']:>10.1f}% {s['std']:>7.1f}% {ci_str:>15} {s['mean_drift']:>10.4f}")
+
+    # Print horizon drift details
+    print("\n" + "=" * 60)
+    print("HORIZON DRIFT ANALYSIS (Step Errors)")
+    print("=" * 60)
+    print(f"{'Config':<20} {'Step 1':>8} {'Step 2':>8} {'Step 3':>8} {'Step 4':>8} {'Step 5':>8}")
+    print("-" * 60)
+    for config in configs:
+        s = stats_results[config]
+        step_strs = [f"{e:.3f}" for e in s['mean_step_errors']]
+        print(f"{config:<20} {step_strs[0]:>8} {step_strs[1]:>8} {step_strs[2]:>8} {step_strs[3]:>8} {step_strs[4]:>8}")
 
     # Save results
     output = {
@@ -635,7 +756,7 @@ def create_comparison_plot(stats_results, output_dir):
 def main():
     parser = argparse.ArgumentParser(description='A-JEPA v4 Benchmark')
     parser.add_argument('--configs', nargs='+',
-                        default=['default', 'no_dual', 'no_symbolic', 'no_gating', 'no_structured_mem', 'continuous', 'with_planner', 'planner_only'],
+                        default=['default', 'no_dual', 'no_symbolic', 'no_gating', 'no_structured_mem', 'continuous', 'with_planner_aux', 'with_planner_replace', 'planner_only'],
                         help='Configs to benchmark')
     parser.add_argument('--seeds', nargs='+', type=int, default=[42, 123, 456],
                         help='Random seeds for experiments')
@@ -665,7 +786,7 @@ def main():
 
     if args.planner_only:
         print("Running planner-only benchmark...")
-        args.configs = ['default', 'with_planner', 'planner_only']
+        args.configs = ['default', 'with_planner_aux', 'planner_only']
 
     run_benchmark(
         configs=args.configs,

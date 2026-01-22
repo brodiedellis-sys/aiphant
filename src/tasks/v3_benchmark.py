@@ -603,7 +603,7 @@ def run_benchmark(
     print("STATISTICAL SUMMARY")
     print("=" * 70)
     
-    print(f"\n{'Model':<20} {'Acc ± Std':<15} {'95% CI':<20} {'Cohen\\'s d':<12} {'p-value':<10}")
+    print(f"\n{'Model':<20} {'Acc ± Std':<15} {'95% CI':<20} {'Cohens d':<12} {'p-value':<10}")
     print("-" * 80)
     
     for model_type in models:

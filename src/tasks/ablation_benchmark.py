@@ -174,48 +174,42 @@ class AJEPAv3FourSlots(AJEPAv3):
 # =============================================================================
 
 def preprocess_no_motion(video):
-    """Multi-scale edges without motion channel (3 channels)."""
+    """Multi-scale edges without motion channel (3 channels).
+
+    Input: numpy array (T, 1, H, W) grayscale video in [0, 1]
+    Output: numpy array (T, 3, H, W) multi-scale edges
+    """
     from datasets.bouncing_balls import multi_scale_sobel
-    import cv2
-    
-    T, C, H, W = video.shape
-    result = []
-    for t in range(T):
-        frame = video[t].permute(1, 2, 0).numpy()
-        if C == 3:
-            gray = cv2.cvtColor((frame * 255).astype(np.uint8), cv2.COLOR_RGB2GRAY)
-        else:
-            gray = (frame[:, :, 0] * 255).astype(np.uint8)
-        edges = multi_scale_sobel(gray)  # (3, H, W)
-        result.append(torch.from_numpy(edges).float())
-    return torch.stack(result)  # (T, 3, H, W)
+    # multi_scale_sobel expects (T, 1, H, W) numpy array, returns (T, 3, H, W)
+    return multi_scale_sobel(video)
 
 
 def preprocess_single_edge_motion(video):
-    """Single-scale edge + motion (2 channels)."""
+    """Single-scale edge + motion (2 channels).
+
+    Input: numpy array (T, 1, H, W) grayscale video in [0, 1]
+    Output: numpy array (T, 2, H, W) single-scale edge + motion
+    """
     from datasets.bouncing_balls import compute_motion_features
     import cv2
-    
+
     T, C, H, W = video.shape
     edges_list = []
     for t in range(T):
-        frame = video[t].permute(1, 2, 0).numpy()
-        if C == 3:
-            gray = cv2.cvtColor((frame * 255).astype(np.uint8), cv2.COLOR_RGB2GRAY)
-        else:
-            gray = (frame[:, :, 0] * 255).astype(np.uint8)
-        
+        # video is (T, C, H, W) numpy array
+        frame = (video[t, 0] * 255).astype(np.uint8)  # (H, W)
+
         # Single-scale Sobel ksize=3
-        sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=3)
-        sobely = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=3)
+        sobelx = cv2.Sobel(frame, cv2.CV_64F, 1, 0, ksize=3)
+        sobely = cv2.Sobel(frame, cv2.CV_64F, 0, 1, ksize=3)
         edge = np.sqrt(sobelx**2 + sobely**2)
         edge = edge / (edge.max() + 1e-8)
-        edges_list.append(torch.from_numpy(edge).float().unsqueeze(0))
-    
-    edges = torch.stack(edges_list)  # (T, 1, H, W)
+        edges_list.append(edge.astype(np.float32))
+
+    edges = np.stack(edges_list)[:, np.newaxis, :, :]  # (T, 1, H, W)
     motion = compute_motion_features(video)  # (T, 1, H, W)
-    
-    return torch.cat([edges, motion], dim=1)  # (T, 2, H, W)
+
+    return np.concatenate([edges, motion], axis=1)  # (T, 2, H, W)
 
 
 # =============================================================================
@@ -457,14 +451,21 @@ def run_ablation_study(config: AblationConfig):
                 def __init__(self, base_dataset, preprocess_fn):
                     self.base = base_dataset
                     self.preprocess_fn = preprocess_fn
-                
+                    # Pre-process all raw videos from the base dataset
+                    self.processed_videos = []
+                    for i in range(base_dataset.num_samples):
+                        raw_video = base_dataset.videos[i]  # Access raw video directly
+                        processed = preprocess_fn(raw_video)
+                        self.processed_videos.append(processed)
+
                 def __len__(self):
-                    return len(self.base)
-                
+                    return len(self.processed_videos)
+
                 def __getitem__(self, idx):
-                    item = self.base[idx]
-                    video = self.preprocess_fn(item['video'])
-                    return {'video': video, 'num_balls': item['num_balls']}
+                    video = self.processed_videos[idx]
+                    # Get actual num_balls from base dataset's stored values
+                    num_balls = self.base.video_num_balls[idx]
+                    return {'video': torch.from_numpy(video) if isinstance(video, np.ndarray) else video, 'num_balls': num_balls}
             
             train_dataset = PreprocessedDataset(train_data, preprocess_fn)
             test_dataset = PreprocessedDataset(test_data, preprocess_fn)

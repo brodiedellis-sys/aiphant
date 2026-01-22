@@ -488,11 +488,22 @@ class BouncingBallsDataset(Dataset):
         
         if seed is not None:
             np.random.seed(seed)
+
+        # Handle tuple num_balls (random selection per video)
+        num_balls_is_tuple = isinstance(num_balls, tuple)
         
         # Pre-generate all videos
         self.videos = []
+        self.video_num_balls = []  # Store actual num_balls per video
         for _ in range(num_samples):
-            video = generate_video(num_frames, num_balls, img_size, with_collisions)
+            # If num_balls is a tuple (min, max), randomly select for each video
+            if num_balls_is_tuple:
+                actual_num_balls = np.random.randint(num_balls[0], num_balls[1] + 1)
+            else:
+                actual_num_balls = num_balls
+
+            self.video_num_balls.append(actual_num_balls)  # Store actual count
+            video = generate_video(num_frames, actual_num_balls, img_size, with_collisions)
             
             # Apply transform based on mode
             if mode == 'raw':
