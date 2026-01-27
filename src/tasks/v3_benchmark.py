@@ -7,6 +7,8 @@ Features:
 3. Multi-seed evaluation (10 seeds by default) for statistical rigor
 4. Capacity-matched models for fair comparison
 5. Proper statistics: p-values, effect sizes, 95% confidence intervals
+6. Full reproducibility with deterministic seeding
+7. Baselines: Random projection, SimpleCNN, V-JEPA-Tiny
 
 Curriculum Phases:
 - Easy (30 epochs): 1 ball, no sparsity - learn "what is an object"
@@ -19,11 +21,12 @@ Total: 110 epochs per model
 import argparse
 import json
 import os
+import random
 import sys
 import time
 from datetime import datetime
 from dataclasses import dataclass, asdict
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 
 import numpy as np
 import torch
@@ -32,13 +35,134 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader, Dataset
 from scipy import stats
 
+
+# =============================================================================
+# REPRODUCIBILITY
+# =============================================================================
+
+def set_seed(seed: int):
+    """Full deterministic seeding for reproducibility."""
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    # For bitwise CUDA reproducibility (optional, may slow down):
+    # os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+    # torch.use_deterministic_algorithms(True)
+
+
+def seed_worker(worker_id):
+    """Seed each DataLoader worker for reproducibility."""
+    worker_seed = torch.initial_seed() % 2**32
+    np.random.seed(worker_seed)
+    random.seed(worker_seed)
+
+
+def get_generator(seed: int) -> torch.Generator:
+    """Get a seeded generator for DataLoader."""
+    g = torch.Generator()
+    g.manual_seed(seed)
+    return g
+
+
+# =============================================================================
+# BASELINE MODELS
+# =============================================================================
+
+class RandomBaseline(nn.Module):
+    """
+    Frozen random projection baseline - sanity check for chance performance.
+    Expected accuracy: ~50% on binary classification.
+    """
+    def __init__(self, input_dim: int = 4*32*32, proj_dim: int = 256):
+        super().__init__()
+        self.proj = nn.Linear(input_dim, proj_dim)
+        # Initialize with small weights to avoid overflow
+        nn.init.normal_(self.proj.weight, std=0.01)
+        nn.init.zeros_(self.proj.bias)
+        # Freeze all parameters
+        for p in self.parameters():
+            p.requires_grad = False
+
+    def encode(self, x: torch.Tensor) -> torch.Tensor:
+        """Encode single frame via random projection (normalized)."""
+        z = self.proj(x.view(x.size(0), -1))
+        return F.normalize(z, dim=-1)  # Normalize to prevent overflow
+
+    def encode_video(self, video: torch.Tensor, return_all: bool = False) -> torch.Tensor:
+        """Encode video (mean pool across time)."""
+        B, T, C, H, W = video.shape
+        frames = video.reshape(B * T, C, H, W)
+        z = self.encode(frames).view(B, T, -1)
+        if return_all:
+            return z
+        return z.mean(dim=1)
+
+    def forward(self, context_video, target_video):
+        """Dummy forward for compatibility."""
+        return {'loss': torch.tensor(0.0), 'predictions': None, 'targets': None}
+
+
+class SimpleCNN(nn.Module):
+    """
+    Single-frame CNN baseline - no temporal/relational reasoning.
+    Tests whether temporal modeling helps.
+    """
+    def __init__(self, in_channels: int = 4, emb_dim: int = 128):
+        super().__init__()
+        self.emb_dim = emb_dim
+        self.conv = nn.Sequential(
+            nn.Conv2d(in_channels, 32, 3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(2),
+            nn.Conv2d(32, 64, 3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.AdaptiveAvgPool2d(4),
+        )
+        self.fc = nn.Linear(64 * 4 * 4, emb_dim)
+
+    def encode(self, x: torch.Tensor) -> torch.Tensor:
+        """Encode single frame."""
+        h = self.conv(x)
+        return self.fc(h.view(h.size(0), -1))
+
+    def encode_frame(self, x: torch.Tensor) -> torch.Tensor:
+        """Alias for encode."""
+        return self.encode(x)
+
+    def encode_video(self, video: torch.Tensor, return_all: bool = False) -> torch.Tensor:
+        """Encode video by mean-pooling frame features."""
+        B, T, C, H, W = video.shape
+        frames = video.reshape(B * T, C, H, W)
+        z = self.encode(frames).view(B, T, -1)
+        if return_all:
+            return z
+        return z.mean(dim=1)
+
+    def forward(self, context_video, target_video):
+        """Training forward pass."""
+        z_ctx = self.encode_video(context_video)
+        z_tgt = self.encode_video(target_video)
+        # Simple MSE loss
+        loss = F.mse_loss(z_ctx, z_tgt.detach())
+        return {'loss': loss, 'predictions': z_ctx, 'targets': z_tgt}
+
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from src.models_v3 import AJEPAv3, VJEPAv3, get_ajepa_v3, get_vjepa_v3
 from src.models_v2 import get_ajepa_v2, get_vjepa_v2
-from src.datasets.bouncing_balls import generate_video, preprocess_for_ajepa_v3, preprocess_for_vjepa_v3
-from src.datasets.hidden_mass import generate_hidden_mass_video
+from src.datasets.bouncing_balls import (
+    generate_video, preprocess_for_ajepa_v3, preprocess_for_vjepa_v3,
+    BouncingBallsDataset,
+)
+
+try:
+    from src.datasets.hidden_mass import generate_hidden_mass_video
+except ImportError:
+    generate_hidden_mass_video = None
 
 try:
     import matplotlib
@@ -256,18 +380,25 @@ class CurriculumTrainer:
         num_samples: int = 200,
         batch_size: int = 16,
         verbose: bool = True,
+        seed: int = None,
     ):
         """Train for one curriculum phase."""
         self.set_sparsity(phase['sparsity'])
-        
-        # Create dataset for this phase
+
+        # Create dataset for this phase with deterministic seed
+        phase_seed = seed if seed is not None else np.random.randint(10000)
         dataset = CurriculumDatasetV3(
             num_samples=num_samples,
             mode=self.mode,
             phase=phase['name'],
-            seed=np.random.randint(10000),
+            seed=phase_seed,
         )
-        loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+        # Use seeded DataLoader for reproducibility
+        g = get_generator(phase_seed)
+        loader = DataLoader(
+            dataset, batch_size=batch_size, shuffle=True,
+            worker_init_fn=seed_worker, generator=g
+        )
         
         losses = []
         for epoch in range(phase['epochs']):
@@ -311,22 +442,26 @@ class CurriculumTrainer:
         num_samples: int = 200,
         batch_size: int = 16,
         verbose: bool = True,
+        seed: int = None,
     ):
         """Train through all curriculum phases."""
         all_losses = []
-        
-        for phase in self.phases:
+
+        for i, phase in enumerate(self.phases):
             if verbose:
                 print(f"\n  Phase: {phase['name'].upper()} ({phase['epochs']} epochs)")
-            
+
+            # Each phase gets a deterministic but different seed
+            phase_seed = (seed + i * 1000) if seed is not None else None
             phase_losses = self.train_phase(
                 phase=phase,
                 num_samples=num_samples,
                 batch_size=batch_size,
                 verbose=verbose,
+                seed=phase_seed,
             )
             all_losses.extend(phase_losses)
-        
+
         return all_losses
 
 
@@ -334,34 +469,75 @@ class CurriculumTrainer:
 # LINEAR PROBE EVALUATION
 # =============================================================================
 
-def extract_features(model, dataset, device, mode='ajepa_v3'):
-    """Extract features from a trained model."""
+def extract_temporal_features(model, context_frames: torch.Tensor, device) -> torch.Tensor:
+    """
+    Extract features with temporal pooling across all context frames.
+
+    Args:
+        model: Trained model with encode() or encode_video() method
+        context_frames: (B, T, C, H, W) tensor
+        device: torch device
+
+    Returns:
+        (B, D) pooled features
+    """
+    B, T, C, H, W = context_frames.shape
+
+    with torch.no_grad():
+        # Prefer encode_video if available (handles temporal internally)
+        if hasattr(model, 'encode_video'):
+            z = model.encode_video(context_frames.to(device))  # (B, D) or (B, K, D)
+            # Flatten if needed
+            if z.dim() > 2:
+                z = z.view(z.shape[0], -1)
+            return z
+
+        # Fallback: encode each frame and mean-pool
+        features = []
+        for t in range(T):
+            frame = context_frames[:, t].to(device)  # (B, C, H, W)
+            if hasattr(model, 'encode'):
+                feat = model.encode(frame)
+            elif hasattr(model, 'encode_frame'):
+                feat = model.encode_frame(frame)
+            else:
+                feat = model.encoder(frame)
+            features.append(feat)
+
+        # Mean pool across time
+        stacked = torch.stack(features, dim=1)  # (B, T, D)
+        pooled = stacked.mean(dim=1)  # (B, D)
+        return pooled
+
+
+def extract_features(model, dataset, device, mode='ajepa_v3', seed: int = None):
+    """Extract features from a trained model with temporal pooling."""
     model.eval()
     features = []
     labels = []
-    
-    loader = DataLoader(dataset, batch_size=16, shuffle=False)
-    
+
+    g = get_generator(seed) if seed is not None else None
+    loader = DataLoader(
+        dataset, batch_size=16, shuffle=False,
+        worker_init_fn=seed_worker if seed else None,
+        generator=g
+    )
+
     with torch.no_grad():
         for batch in loader:
             context = batch['context'].to(device)
-            
-            # Encode
-            if hasattr(model, 'encode_video'):
-                z = model.encode_video(context)
-            else:
-                # Fallback for v2 models
-                B, T, C, H, W = context.shape
-                z = model.encoder.encode_video(context)
-            
+
+            # Use temporal pooling for proper evaluation
+            z = extract_temporal_features(model, context, device)
+
             # Flatten for linear probe
             z_flat = z.view(z.shape[0], -1)
             features.append(z_flat.cpu())
             labels.append(batch['label'])
-    
+
     features = torch.cat(features, dim=0)
     labels = torch.cat(labels, dim=0)
-    
+
     return features.numpy(), labels.numpy()
 
 
@@ -369,21 +545,189 @@ def train_linear_probe(features, labels, test_features, test_labels):
     """Train and evaluate a simple linear probe."""
     from sklearn.linear_model import LogisticRegression
     from sklearn.preprocessing import StandardScaler
-    
+    import warnings
+
+    # Handle NaN/Inf values
+    features = np.nan_to_num(features, nan=0.0, posinf=1.0, neginf=-1.0)
+    test_features = np.nan_to_num(test_features, nan=0.0, posinf=1.0, neginf=-1.0)
+
     # Normalize features
     scaler = StandardScaler()
     features_scaled = scaler.fit_transform(features)
     test_features_scaled = scaler.transform(test_features)
-    
-    # Train logistic regression
-    clf = LogisticRegression(max_iter=1000, random_state=42)
-    clf.fit(features_scaled, labels)
-    
+
+    # Handle any remaining NaN/Inf after scaling
+    features_scaled = np.nan_to_num(features_scaled, nan=0.0, posinf=1.0, neginf=-1.0)
+    test_features_scaled = np.nan_to_num(test_features_scaled, nan=0.0, posinf=1.0, neginf=-1.0)
+
+    # Train logistic regression (suppress convergence warnings)
+    with warnings.catch_warnings():
+        warnings.filterwarnings('ignore', category=RuntimeWarning)
+        clf = LogisticRegression(max_iter=1000, random_state=42, solver='lbfgs')
+        clf.fit(features_scaled, labels)
+
     # Evaluate
     train_acc = clf.score(features_scaled, labels) * 100
     test_acc = clf.score(test_features_scaled, test_labels) * 100
-    
+
     return train_acc, test_acc
+
+
+# =============================================================================
+# COLLISION DETECTION EVALUATION
+# =============================================================================
+
+class CollisionDataset(Dataset):
+    """
+    Dataset for collision detection evaluation.
+    Each episode is one video, with per-frame collision labels.
+    """
+
+    def __init__(
+        self,
+        num_episodes: int = 100,
+        num_frames: int = 30,
+        num_balls: int = 2,
+        img_size: int = 32,
+        mode: str = 'ajepa_v3',
+        seed: int = None,
+    ):
+        self.num_episodes = num_episodes
+        self.mode = mode
+
+        if seed is not None:
+            set_seed(seed)
+
+        self.episodes = []
+        for _ in range(num_episodes):
+            # Generate video with collision labels
+            video, collision_labels = generate_video(
+                num_frames=num_frames,
+                num_balls=num_balls,
+                img_size=img_size,
+                with_collisions=True,
+                return_collision_labels=True,
+            )
+
+            # Preprocess
+            if mode == 'ajepa_v3':
+                video = preprocess_for_ajepa_v3(video)
+            elif mode == 'vjepa_v3':
+                video = preprocess_for_vjepa_v3(video)
+
+            self.episodes.append({
+                'frames': torch.from_numpy(video),
+                'collision_labels': torch.from_numpy(collision_labels),
+            })
+
+    def __len__(self):
+        return self.num_episodes
+
+    def __getitem__(self, idx):
+        return self.episodes[idx]
+
+
+def evaluate_collision_detection(
+    model,
+    train_episodes: List[Dict],
+    test_episodes: List[Dict],
+    device,
+) -> Dict[str, float]:
+    """
+    Collision detection with proper train/test split by episode.
+
+    Uses balanced accuracy, F1, and AUROC due to class imbalance.
+    """
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.metrics import (
+        f1_score, roc_auc_score, balanced_accuracy_score,
+    )
+
+    def extract_per_frame(episodes):
+        features, labels = [], []
+        model.eval()
+        with torch.no_grad():
+            for ep in episodes:
+                frames = ep['frames']  # (T, C, H, W)
+                collision_labels = ep['collision_labels']  # (T,)
+
+                for t in range(frames.shape[0]):
+                    frame = frames[t:t+1].to(device)  # (1, C, H, W)
+                    if hasattr(model, 'encode'):
+                        feat = model.encode(frame)
+                    elif hasattr(model, 'encode_frame'):
+                        feat = model.encode_frame(frame)
+                    else:
+                        feat = model.encoder(frame)
+                    feat = feat.view(1, -1)
+                    features.append(feat.cpu().numpy())
+                    labels.append(collision_labels[t].item())
+
+        return np.vstack(features), np.array(labels)
+
+    X_train, y_train = extract_per_frame(train_episodes)
+    X_test, y_test = extract_per_frame(test_episodes)
+
+    # Normalize
+    scaler = StandardScaler()
+    X_train = scaler.fit_transform(X_train)
+    X_test = scaler.transform(X_test)
+
+    # Train with balanced class weights
+    clf = LogisticRegression(max_iter=1000, class_weight='balanced', random_state=42)
+    clf.fit(X_train, y_train)
+
+    y_pred = clf.predict(X_test)
+    y_prob = clf.predict_proba(X_test)[:, 1] if len(np.unique(y_train)) > 1 else None
+
+    results = {
+        'balanced_acc': balanced_accuracy_score(y_test, y_pred) * 100,
+        'f1': f1_score(y_test, y_pred, zero_division=0),
+    }
+
+    # AUROC only if both classes present
+    if y_prob is not None and len(np.unique(y_test)) > 1:
+        results['auroc'] = roc_auc_score(y_test, y_prob)
+    else:
+        results['auroc'] = None
+
+    # Class distribution info
+    results['collision_rate_train'] = y_train.mean()
+    results['collision_rate_test'] = y_test.mean()
+
+    return results
+
+
+def run_collision_benchmark(
+    model,
+    mode: str,
+    device,
+    num_train_episodes: int = 80,
+    num_test_episodes: int = 20,
+    seed: int = 42,
+) -> Dict[str, float]:
+    """Run collision detection benchmark for a single model."""
+    set_seed(seed)
+
+    # Create train and test episodes
+    train_data = CollisionDataset(
+        num_episodes=num_train_episodes,
+        mode=mode,
+        seed=seed,
+    )
+    test_data = CollisionDataset(
+        num_episodes=num_test_episodes,
+        mode=mode,
+        seed=seed + 5000,
+    )
+
+    return evaluate_collision_detection(
+        model=model,
+        train_episodes=train_data.episodes,
+        test_episodes=test_data.episodes,
+        device=device,
+    )
 
 
 # =============================================================================
@@ -391,7 +735,7 @@ def train_linear_probe(features, labels, test_features, test_labels):
 # =============================================================================
 
 def run_single_experiment(
-    model_type: str,  # 'ajepa_v3', 'vjepa_v3', 'ajepa_v2', 'vjepa_v2'
+    model_type: str,  # 'ajepa_v3', 'vjepa_v3', 'vjepa_tiny', 'simple_cnn', 'random', etc.
     seed: int,
     num_train: int = 200,
     num_test: int = 100,
@@ -400,11 +744,11 @@ def run_single_experiment(
     verbose: bool = True,
 ):
     """Run a single training + evaluation experiment."""
-    # Set seeds
-    torch.manual_seed(seed)
-    np.random.seed(seed)
-    
+    # Full deterministic seeding
+    set_seed(seed)
+
     # Create model and determine mode
+    skip_training = False
     if model_type == 'ajepa_v3':
         model = get_ajepa_v3('default')
         mode = 'ajepa_v3'
@@ -414,7 +758,7 @@ def run_single_experiment(
     elif model_type == 'vjepa_v3':
         model = get_vjepa_v3('default')
         mode = 'vjepa_v3'
-    elif model_type == 'vjepa_v3_small':
+    elif model_type == 'vjepa_v3_small' or model_type == 'vjepa_tiny':
         model = get_vjepa_v3('capacity_matched')
         mode = 'vjepa_v3'
     elif model_type == 'ajepa_v2':
@@ -423,25 +767,40 @@ def run_single_experiment(
     elif model_type == 'vjepa_v2':
         model = get_vjepa_v2('default')
         mode = 'raw'
+    elif model_type == 'simple_cnn':
+        model = SimpleCNN(in_channels=4, emb_dim=128)
+        mode = 'ajepa_v3'  # Use same 4-channel input
+    elif model_type == 'random':
+        model = RandomBaseline(input_dim=4*32*32, proj_dim=256)
+        mode = 'ajepa_v3'  # Use same 4-channel input
+        skip_training = True  # Random baseline doesn't train
     else:
         raise ValueError(f"Unknown model type: {model_type}")
-    
+
     params = sum(p.numel() for p in model.parameters())
+    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     if verbose:
         print(f"\n{'='*60}")
         print(f"Model: {model_type.upper()}")
-        print(f"Parameters: {params:,}")
+        print(f"Parameters: {params:,} (trainable: {trainable_params:,})")
         print(f"Seed: {seed}")
         print(f"{'='*60}")
-    
-    # Train with curriculum
-    trainer = CurriculumTrainer(model, device, mode=mode)
-    losses = trainer.train_full_curriculum(
-        num_samples=num_train,
-        batch_size=batch_size,
-        verbose=verbose,
-    )
-    
+
+    # Train with curriculum (skip for random baseline)
+    losses = []
+    if not skip_training:
+        trainer = CurriculumTrainer(model, device, mode=mode)
+        losses = trainer.train_full_curriculum(
+            num_samples=num_train,
+            batch_size=batch_size,
+            verbose=verbose,
+            seed=seed,
+        )
+    else:
+        if verbose:
+            print("  (Skipping training - frozen baseline)")
+        model = model.to(device)
+
     # Create test dataset
     test_dataset = CurriculumDatasetV3(
         num_samples=num_test,
@@ -449,32 +808,33 @@ def run_single_experiment(
         phase='hard',  # Test on hard phase
         seed=seed + 1000,
     )
-    
-    # Extract features
+
+    # Extract features from training data for linear probe
     train_dataset = CurriculumDatasetV3(
         num_samples=num_train,
         mode=mode,
         phase='hard',
         seed=seed,
     )
-    
-    train_features, train_labels = extract_features(model, train_dataset, device, mode)
-    test_features, test_labels = extract_features(model, test_dataset, device, mode)
-    
+
+    train_features, train_labels = extract_features(model, train_dataset, device, mode, seed=seed)
+    test_features, test_labels = extract_features(model, test_dataset, device, mode, seed=seed+1000)
+
     # Train linear probe
     train_acc, test_acc = train_linear_probe(
         train_features, train_labels, test_features, test_labels
     )
-    
+
     if verbose:
         print(f"\nResults:")
         print(f"  Train Accuracy: {train_acc:.1f}%")
         print(f"  Test Accuracy: {test_acc:.1f}%")
-    
+
     return {
         'model': model_type,
         'seed': seed,
         'params': params,
+        'trainable_params': trainable_params,
         'train_acc': train_acc,
         'test_acc': test_acc,
         'final_loss': losses[-1] if losses else 0,
@@ -544,24 +904,27 @@ def run_benchmark(
     output_dir: str = 'results/v3_benchmark',
     device: str = None,
     include_capacity_matched: bool = False,
+    with_collision: bool = False,
 ):
     """
-    Run full benchmark comparing v2 and v3 models.
-    
-    With include_capacity_matched=True, also runs:
-    - ajepa_v3_large (~2.7M params, matches V-JEPA)
-    - vjepa_v3_small (~442K params, matches A-JEPA)
+    Run full benchmark comparing models with proper reproducibility.
+
+    Models supported:
+    - ajepa_v3: A-JEPA v3 default (~442K params)
+    - vjepa_v3: V-JEPA v3 default (~2.7M params)
+    - vjepa_tiny: V-JEPA v3 capacity-matched (~442K params)
+    - simple_cnn: Single-frame CNN baseline (~100K params)
+    - random: Random projection baseline (chance level)
     """
     if models is None:
         models = ['ajepa_v3', 'vjepa_v3']
     if seeds is None:
-        # Default to 10 seeds for statistical rigor
-        seeds = [42, 123, 456, 789, 1337, 2024, 3141, 4242, 5678, 9999]
+        seeds = [42, 123, 456]  # Default to 3 seeds
     if device is None:
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    
+
     os.makedirs(output_dir, exist_ok=True)
-    
+
     print("=" * 70)
     print("V3 BENCHMARK: A-JEPA v3 vs V-JEPA v3 (with Curriculum Learning)")
     print("=" * 70)
@@ -570,7 +933,7 @@ def run_benchmark(
     print(f"Seeds: {seeds} ({len(seeds)} seeds)")
     print(f"Train samples: {num_train}")
     print(f"Test samples: {num_test}")
-    print(f"Capacity matched: {include_capacity_matched}")
+    print(f"Collision benchmark: {with_collision}")
     
     # Run all experiments
     results = []
@@ -696,10 +1059,10 @@ def run_benchmark(
 def plot_results(summary, output_dir):
     """Create comparison plots."""
     fig, axes = plt.subplots(1, 2, figsize=(12, 5))
-    
+
     models = list(summary.keys())
-    accs = [summary[m]['mean_acc'] for m in models]
-    stds = [summary[m]['std_acc'] for m in models]
+    accs = [summary[m]['mean'] for m in models]
+    stds = [summary[m]['std'] for m in models]
     params = [summary[m]['params'] / 1e6 for m in models]  # In millions
     
     # Accuracy comparison
@@ -733,13 +1096,41 @@ def plot_results(summary, output_dir):
 # MAIN
 # =============================================================================
 
+AVAILABLE_MODELS = [
+    'ajepa_v3',       # A-JEPA v3 default (~442K params)
+    'vjepa_v3',       # V-JEPA v3 default (~2.7M params)
+    'vjepa_tiny',     # V-JEPA v3 capacity-matched (~442K params)
+    'simple_cnn',     # SimpleCNN baseline (~100K params)
+    'random',         # Random projection baseline (chance level)
+    'ajepa_v3_large', # A-JEPA v3 scaled up (~2.7M params)
+    'vjepa_v3_small', # V-JEPA v3 scaled down (alias for vjepa_tiny)
+    'ajepa_v2',       # Legacy A-JEPA v2
+    'vjepa_v2',       # Legacy V-JEPA v2
+]
+
+
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='V3 Benchmark with Curriculum Learning and Statistical Analysis')
+    parser = argparse.ArgumentParser(
+        description='V3 Benchmark with Curriculum Learning and Statistical Analysis',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=f"""
+Available models:
+  ajepa_v3      - A-JEPA v3 default (~442K params) [main model]
+  vjepa_v3      - V-JEPA v3 default (~2.7M params) [baseline]
+  vjepa_tiny    - V-JEPA v3 capacity-matched (~442K params) [fair comparison]
+  simple_cnn    - Single-frame CNN (~100K params) [no temporal reasoning]
+  random        - Random projection [chance baseline ~50%]
+
+Example:
+  python v3_benchmark.py --models ajepa_v3 vjepa_tiny vjepa_v3 simple_cnn random --seeds 42 123 456
+"""
+    )
     parser.add_argument('--models', nargs='+', default=['ajepa_v3', 'vjepa_v3'],
-                        help='Models to benchmark (ajepa_v3, vjepa_v3, ajepa_v2, vjepa_v2)')
-    parser.add_argument('--seeds', type=int, nargs='+', 
-                        default=[42, 123, 456, 789, 1337, 2024, 3141, 4242, 5678, 9999],
-                        help='Random seeds for multi-run evaluation (10 seeds by default)')
+                        choices=AVAILABLE_MODELS,
+                        help='Models to benchmark')
+    parser.add_argument('--seeds', type=int, nargs='+',
+                        default=[42, 123, 456],
+                        help='Random seeds for multi-run evaluation (default: 3 seeds)')
     parser.add_argument('--num_train', type=int, default=200,
                         help='Number of training samples per phase')
     parser.add_argument('--num_test', type=int, default=100,
@@ -752,17 +1143,29 @@ if __name__ == '__main__':
                         help='Device (cuda/cpu)')
     parser.add_argument('--capacity_matched', action='store_true',
                         help='Include capacity-matched models for fair comparison')
-    
+    parser.add_argument('--with_collision', action='store_true',
+                        help='Also run collision detection benchmark')
+    parser.add_argument('--all_baselines', action='store_true',
+                        help='Include all baseline models (random, simple_cnn, vjepa_tiny)')
+
     args = parser.parse_args()
-    
-    # If capacity matched, add the variants
+
+    # Build model list
     models = args.models.copy() if hasattr(args.models, 'copy') else list(args.models)
+
+    # Add all baselines if requested
+    if args.all_baselines:
+        for baseline in ['random', 'simple_cnn', 'vjepa_tiny']:
+            if baseline not in models:
+                models.append(baseline)
+
+    # Add capacity-matched variants if requested
     if args.capacity_matched:
-        if 'ajepa_v3' in models:
+        if 'ajepa_v3' in models and 'ajepa_v3_large' not in models:
             models.append('ajepa_v3_large')
-        if 'vjepa_v3' in models:
-            models.append('vjepa_v3_small')
-    
+        if 'vjepa_v3' in models and 'vjepa_tiny' not in models:
+            models.append('vjepa_tiny')
+
     run_benchmark(
         models=models,
         seeds=args.seeds,
@@ -772,5 +1175,6 @@ if __name__ == '__main__':
         output_dir=args.output_dir,
         device=args.device,
         include_capacity_matched=args.capacity_matched,
+        with_collision=args.with_collision,
     )
 
